@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Test Page</title>
+	<script>
+		function testConnection() {
+			const ws = new WebSocket('ws://localhost:8080');
+
+			ws.onopen = function () {
+				console.log('Connected to server');
+				document.getElementById('status').textContent = 'Connected';
+
+				// Отправляем тестовое сообщение
+				const message = {
+					jsonrpc: "2.0",
+					id: 1,
+					method: "getValue",
+					params: { "key": "systemStatus" }
+				};
+				ws.send(JSON.stringify(message));
+			};
+
+			ws.onmessage = function (event) {
+				console.log('Received:', event.data);
+				document.getElementById('message').textContent = event.data;
+			};
+
+			ws.onerror = function (error) {
+				console.error('WebSocket error:', error);
+				document.getElementById('status').textContent = 'Error';
+			};
+
+			ws.onclose = function () {
+				console.log('Connection closed');
+				document.getElementById('status').textContent = 'Disconnected';
+			};
+		}
+	</script>
+</head>
+
+<body>
+	<h1>WebSocket Test</h1>
+	<button onclick="testConnection()">Test Connection</button>
+	<div>
+		Status: <span id="status">Not connected</span>
+	</div>
+	<div>
+		Last message: <span id="message">None</span>
+	</div>
+</body>
+
+</html>

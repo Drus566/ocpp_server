@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>WS Test</title>
+</head>
+
+<body>
+	<h1>WebSocket Test</h1>
+	<button onclick="connect()">Connect WS</button>
+	<button onclick="sendStart()">Start Charging</button>
+	<div id="status">Disconnected</div>
+	<div id="log"></div>
+
+	<script>
+		let ws = null;
+
+		function log(msg) {
+			document.getElementById('log').innerHTML += msg + '<br>';
+		}
+
+		function connect() {
+			ws = new WebSocket('ws://localhost:8080');
+			ws.onopen = () => {
+				document.getElementById('status').textContent = 'Connected';
+				log('✅ Connected to server');
+			};
+			ws.onmessage = (e) => {
+				log('📨 Received: ' + e.data);
+			};
+			ws.onerror = (e) => {
+				log('❌ Error: ' + e);
+			};
+			ws.onclose = () => {
+				document.getElementById('status').textContent = 'Disconnected';
+				log('🔌 Disconnected');
+			};
+		}
+
+		function sendStart() {
+			if (!ws || ws.readyState !== WebSocket.OPEN) {
+				log('❌ Not connected!');
+				return;
+			}
+
+			const msg = {
+				jsonrpc: "2.0",
+				id: 1,
+				method: "startCharging",
+				params: {}
+			};
+
+			ws.send(JSON.stringify(msg));
+			log('📤 Sent: startCharging');
+		}
+	</script>
+</body>
+
+</html>

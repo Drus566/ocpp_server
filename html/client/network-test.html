@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Network Test</title>
+</head>
+
+<body>
+	<h1>Network Connection Test</h1>
+
+	<div>
+		<h3>Test URLs:</h3>
+		<ul>
+			<li><a href="http://localhost:8080/" target="_blank">localhost:8080</a></li>
+			<li><a href="http://127.0.0.1:8080/" target="_blank">127.0.0.1:8080</a></li>
+			<li><a id="wslLink" target="_blank">WSL IP:8080</a></li>
+		</ul>
+	</div>
+
+	<script>
+		// Попробуем автоматически определить WSL IP
+		const wslIps = [
+			'172.21.64.104',  // Замените на ваш IP WSL
+			'172.21.64.105',
+			'172.21.64.106',
+			'172.22.64.1',
+			'172.23.64.1'
+		];
+
+		const wslLink = document.getElementById('wslLink');
+
+		// Тестируем доступность
+		wslIps.forEach(ip => {
+			fetch(`http://${ip}:8080/`, { mode: 'no-cors' })
+				.then(() => {
+					wslLink.href = `http://${ip}:8080/`;
+					wslLink.textContent = `${ip}:8080 (Works!)`;
+				})
+				.catch(() => {
+					// IP не доступен
+				});
+		});
+	</script>
+</body>
+
+</html>

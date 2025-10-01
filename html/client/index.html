@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Charge Station Monitor</title>
+	<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+	<div class="container">
+		<header>
+			<h1>⚡ Charge Station Monitor</h1>
+			<div class="status">
+				<span id="connectionStatus" class="status-offline">Offline</span>
+				<span id="serverTime">--:--:--</span>
+				<button id="toggleRPC" class="btn btn-secondary">Pause RPC</button>
+				<button id="debugBtn" class="btn btn-info">Debug Info</button>
+			</div>
+		</header>
+
+		<main>
+			<div class="dashboard">
+				<!-- Статус системы -->
+				<div class="card">
+					<h2>System Status</h2>
+					<div class="value" id="systemStatus">Loading...</div>
+				</div>
+
+				<!-- Мощность -->
+				<div class="card">
+					<h2>Current Power</h2>
+					<div class="value" id="currentPower">0 kW</div>
+					<div class="progress">
+						<div class="progress-bar" id="powerBar"></div>
+					</div>
+				</div>
+
+				<!-- Напряжение -->
+				<div class="card">
+					<h2>Voltage</h2>
+					<div class="value" id="voltage">0 V</div>
+				</div>
+
+				<!-- Температура -->
+				<div class="card">
+					<h2>Temperature</h2>
+					<div class="value" id="temperature">0°C</div>
+				</div>
+
+				<!-- Количество подключений -->
+				<div class="card">
+					<h2>Connected Clients</h2>
+					<div class="value" id="connectedClients">0</div>
+				</div>
+
+				<!-- Время работы -->
+				<div class="card">
+					<h2>Uptime</h2>
+					<div class="value" id="uptime">0s</div>
+				</div>
+			</div>
+
+			<!-- Управление -->
+			<div class="control-panel">
+				<h2>Control Panel</h2>
+				<div class="controls">
+					<button id="startCharging" class="btn btn-primary">Start Charging</button>
+					<button id="stopCharging" class="btn btn-danger">Stop Charging</button>
+					<button id="resetSystem" class="btn btn-warning">Reset System</button>
+				</div>
+
+				<div class="settings">
+					<h3>Settings</h3>
+					<div class="setting">
+						<label for="maxPower">Max Power (kW):</label>
+						<input type="number" id="maxPower" min="1" max="100" value="50">
+						<button id="setMaxPower" class="btn btn-secondary">Set</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Логи -->
+			<div class="logs">
+				<h2>Event Log</h2>
+				<div class="log-container" id="eventLog">
+					<div class="log-entry">System initialized</div>
+				</div>
+			</div>
+
+			<!-- Отладочная информация -->
+			<div class="debug-panel" id="debugPanel"
+				style="display: none; margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+				<h3>Debug Information</h3>
+				<pre id="debugInfo"></pre>
+			</div>
+		</main>
+	</div>
+
+	<!-- Встроенный JavaScript -->
+	<script>
+		// RPC Client Class
+		class RPCClient {
+			constructor() {
+				this.ws = null;
+				this.connected = false;
+				this.requestId = 0;
+				this.pendingRequests = new Map();
+				this.eventHandlers = new Map();
+
+				this.reconnectInterval = 3000;
+				this.maxReconnectAttempts = 5;
+				this.reconnectAttempts = 0;
+
+				this.debug = true;
+				this.rpcEnabled = true;
+			}
+
+			log(message, data = null) {
+				if (this.debug) {
+					console.log(`[RPCClient] ${message}`, data || '');
+				}
+			}
+
+			connect(url = 'ws://localhost:8080') {
+				try {
+					this.log(`Connecting to ${url}...`);
+					this.ws = new WebSocket(url, 'websocket');
+
+					this.ws.onopen = () => {
+						this.log('WebSocket connection established');
+						this.connected = true;
+						this.reconnectAttempts = 0;
+						this.emit('connected');
+					};
+
+					this.ws.onmessage = (event) => {
+						if (!this.rpcEnabled) return;
+
+						this.log('Raw message received:', event.data);
+						try {
+							const message = JSON.parse(event.data);
+							this.log('Parsed message:', message);
+							this.handleMessage(message);
+						} catch (error) {
+							console.error('Error parsing message:', error, 'Raw data:', event.data);
+							this.emit('parseError', { error, rawData: event.data });
+						}
+					};
+
+					this.ws.onclose = () => {
+						this.log('WebSocket connection closed');
+						this.connected = false;
+						this.emit('disconnected');
+						this.handleReconnect();
+					};
+
+					this.ws.onerror = (error) => {
+						this.log('WebSocket error:', error);
+						this.emit('error', error);
+					};
+
+				} catch (error) {
+					console.error('Connection error:', error);
+					this.emit('connectionError', error);
+				}
+			}
+
+			handleMessage(message) {
+				// Ответ на RPC запрос
+				if (message.id && this.pendingRequests.has(message.id)) {
+					const { resolve, reject } = this.pendingRequests.get(message.id);
+					this.pendingRequests.delete(message.id);
+
+					if (message.error) {
+						reject(new Error(message.error));
+					} else {
+						resolve(message.result);
+					}
+				}
+				// Уведомление от сервера
+				else if (message.method) {
+					this.emit(message.method, message.params);
+				}
+				else {
+					this.log('Unknown message format:', message);
+				}
+			}
+
+			call(method, params = {}) {
+				return new Promise((resolve, reject) => {
+					if (!this.rpcEnabled) {
+						const error = new Error('RPC is currently disabled');
+						this.log('Call blocked - RPC disabled:', method);
+						reject(error);
+						return;
+					}
+
+					if (!this.connected) {
+						const error = new Error('Not connected to server');
+						this.log('Call failed - not connected:', method);
+						reject(error);
+						return;
+					}
+
+					const id = ++this.requestId;
+					const request = {
+						jsonrpc: '2.0',
+						id: id,
+						method: method,
+						params: params
+					};
+
+					this.pendingRequests.set(id, { resolve, reject });
+
+					const requestJson = JSON.stringify(request);
+					this.log(`Sending RPC request: ${method}`, request);
+
+					try {
+						this.ws.send(requestJson);
+					} catch (error) {
+						this.pendingRequests.delete(id);
+						reject(error);
+					}
+				});
+			}
+
+			setRPCEnabled(enabled) {
+				this.rpcEnabled = enabled;
+				this.log(`RPC ${enabled ? 'enabled' : 'disabled'}`);
+				this.emit('rpcToggle', enabled);
+			}
+
+			isRPCEnabled() {
+				return this.rpcEnabled;
+			}
+
+			on(event, handler) {
+				if (!this.eventHandlers.has(event)) {
+					this.eventHandlers.set(event, []);
+				}
+				this.eventHandlers.get(event).push(handler);
+			}
+
+			off(event, handler) {
+				if (this.eventHandlers.has(event)) {
+					const handlers = this.eventHandlers.get(event);
+					const index = handlers.indexOf(handler);
+					if (index > -1) {
+						handlers.splice(index, 1);
+					}
+				}
+			}
+
+			emit(event, data) {
+				if (this.eventHandlers.has(event)) {
+					this.eventHandlers.get(event).forEach(handler => {
+						try {
+							handler(data);
+						} catch (error) {
+							console.error('Error in event handler:', error);
+						}
+					});
+				}
+			}
+
+			handleReconnect() {
+				if (this.reconnectAttempts < this.maxReconnectAttempts) {
+					this.reconnectAttempts++;
+					console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+					setTimeout(() => {
+						this.connect();
+					}, this.reconnectInterval);
+				} else {
+					console.error('Max reconnection attempts reached');
+					this.emit('reconnect_failed');
+				}
+			}
+
+			disconnect() {
+				this.connected = false;
+				this.reconnectAttempts = this.maxReconnectAttempts;
+				if (this.ws) {
+					this.ws.close();
+				}
+			}
+
+			// Метод для получения диагностической информации
+			getDebugInfo() {
+				return {
+					connected: this.connected,
+					rpcEnabled: this.rpcEnabled,
+					pendingRequests: this.pendingRequests.size,
+					reconnectAttempts: this.reconnectAttempts,
+					url: this.ws ? this.ws.url : 'No connection'
+				};
+			}
+		}
+
+		// Monitoring System Class
+		class MonitoringSystem {
+			constructor() {
+				this.values = {};
+				this.connectionState = 'disconnected';
+				this.metricsInterval = null;
+				this.rpcEnabled = true;
+				this.lastMetrics = {};
+				this.defaultValues = {
+					currentPower: 0,
+					voltage: 0,
+					temperature: 0,
+					connectedClients: 0,
+					uptime: 0,
+					systemStatus: 'disconnected'
+				};
+				this.init();
+			}
+
+			init() {
+				console.log('Initializing MonitoringSystem...');
+
+				// Создаем глобальный RPC клиент
+				window.rpcClient = new RPCClient();
+
+				// Подключаем RPC клиент
+				rpcClient.on('connected', () => {
+					console.log('RPC client connected successfully');
+					this.updateConnectionStatus(true);
+					this.connectionState = 'connected';
+					this.startMonitoring();
+				});
+
+				rpcClient.on('disconnected', () => {
+					console.log('RPC client disconnected');
+					this.updateConnectionStatus(false);
+					this.connectionState = 'disconnected';
+					this.stopMetricsUpdate();
+					// Устанавливаем значения по умолчанию при отключении
+					this.setDefaultValues();
+				});
+
+				rpcClient.on('error', (error) => {
+					console.error('RPC client error:', error);
+					this.addLog('Connection error: ' + error.message);
+				});
+
+				rpcClient.on('parseError', (data) => {
+					console.error('Parse error:', data.error);
+					this.addLog('Parse error in server response');
+					this.showDebugInfo();
+				});
+
+				rpcClient.on('rpcToggle', (enabled) => {
+					this.rpcEnabled = enabled;
+					this.updateRPCButton();
+					this.addLog(`RPC ${enabled ? 'enabled' : 'disabled'}`);
+
+					if (enabled) {
+						this.startMetricsUpdate();
+					} else {
+						this.stopMetricsUpdate();
+					}
+				});
+
+				rpcClient.on('valueChanged', (params) => {
+					console.log('Value changed notification:', params);
+					this.updateValue(params.key, params.value);
+				});
+
+				rpcClient.on('chargingStarted', (params) => {
+					this.addLog(`Charging started - Session: ${params.sessionId}`);
+					this.updateValue('systemStatus', 'charging');
+					this.updateValue('chargingEnabled', 'true');
+				});
+
+				rpcClient.on('chargingStopped', (params) => {
+					this.addLog(`Charging stopped - Energy: ${parseFloat(params.energyConsumed).toFixed(2)} kWh`);
+					this.updateValue('systemStatus', 'ready');
+					this.updateValue('chargingEnabled', 'false');
+				});
+
+				rpcClient.on('metricsUpdate', (params) => {
+					this.lastMetrics = params;
+					this.processMetrics(params);
+				});
+
+				// Подключаемся к серверу
+				rpcClient.connect();
+
+				// Настраиваем обработчики кнопок
+				this.setupEventHandlers();
+			}
+
+			setDefaultValues() {
+				Object.keys(this.defaultValues).forEach(key => {
+					this.updateValue(key, this.defaultValues[key]);
+				});
+			}
+
+			setupEventHandlers() {
+				console.log('Setting up event handlers...');
+
+				// Обработчики кнопок управления
+				document.getElementById('startCharging').addEventListener('click', () => {
+					console.log('Start Charging button clicked');
+					this.sendCommand('startCharging', {});
+				});
+
+				document.getElementById('stopCharging').addEventListener('click', () => {
+					console.log('Stop Charging button clicked');
+					this.sendCommand('stopCharging', {});
+				});
+
+				document.getElementById('resetSystem').addEventListener('click', () => {
+					console.log('Reset System button clicked');
+					this.sendCommand('resetSystem', {});
+				});
+
+				document.getElementById('setMaxPower').addEventListener('click', () => {
+					const maxPower = document.getElementById('maxPower').value;
+					console.log('Set Max Power button clicked:', maxPower);
+					if (maxPower && maxPower >= 1 && maxPower <= 100) {
+						this.sendCommand('setMaxPower', { value: parseInt(maxPower) });
+					} else {
+						alert('Please enter a valid power value between 1 and 100 kW');
+					}
+				});
+
+				// Обработчик кнопки включения/отключения RPC
+				document.getElementById('toggleRPC').addEventListener('click', () => {
+					this.toggleRPC();
+				});
+
+				// Обработчик кнопки отладки
+				document.getElementById('debugBtn').addEventListener('click', () => {
+					this.showDebugInfo();
+				});
+			}
+
+			toggleRPC() {
+				const newState = !this.rpcEnabled;
+				rpcClient.setRPCEnabled(newState);
+				this.rpcEnabled = newState;
+
+				if (newState) {
+					this.addLog('RPC requests enabled');
+					this.startMetricsUpdate();
+				} else {
+					this.addLog('RPC requests disabled');
+					this.stopMetricsUpdate();
+				}
+
+				this.updateRPCButton();
+			}
+
+			updateRPCButton() {
+				const button = document.getElementById('toggleRPC');
+				if (this.rpcEnabled) {
+					button.textContent = 'Pause RPC';
+					button.className = 'btn btn-secondary';
+				} else {
+					button.textContent = 'Resume RPC';
+					button.className = 'btn btn-warning';
+				}
+			}
+
+			async startMonitoring() {
+				try {
+					this.addLog('Requesting initial values...');
+
+					// Запрашиваем начальные значения
+					const values = await rpcClient.call('getValues');
+					console.log('Initial values received:', values);
+
+					// Обновляем интерфейс
+					if (values && typeof values === 'object') {
+						Object.keys(values).forEach(key => {
+							this.updateValue(key, values[key]);
+						});
+					} else {
+						console.warn('Invalid values received:', values);
+						this.setDefaultValues();
+					}
+
+					// Запускаем периодическое обновление метрик
+					this.startMetricsUpdate();
+
+					this.addLog('Monitoring started successfully');
+
+				} catch (error) {
+					console.error('Failed to start monitoring:', error);
+					this.addLog('Error starting monitoring: ' + error.message);
+					this.setDefaultValues();
+					this.showDebugInfo();
+				}
+			}
+
+			startMetricsUpdate() {
+				// Останавливаем предыдущий интервал если есть
+				this.stopMetricsUpdate();
+
+				// Запускаем обновление метрик только если RPC включен
+				if (this.rpcEnabled) {
+					this.metricsInterval = setInterval(() => this.updateMetrics(), 1000);
+					this.addLog('Metrics update started');
+				}
+			}
+
+			stopMetricsUpdate() {
+				if (this.metricsInterval) {
+					clearInterval(this.metricsInterval);
+					this.metricsInterval = null;
+					this.addLog('Metrics update stopped');
+				}
+			}
+
+			async updateMetrics() {
+				// Не обновляем метрики если RPC отключен
+				if (!this.rpcEnabled) return;
+
+				try {
+					this.addLog('Requesting metrics...', 'debug');
+					const metrics = await rpcClient.call('getMetrics');
+					console.log('Raw metrics received:', metrics);
+					console.log('Type of metrics:', typeof metrics);
+
+					// Сохраняем последние метрики для отладки
+					this.lastMetrics = metrics;
+
+					// Обрабатываем метрики в зависимости от их типа
+					const processedMetrics = this.processMetricsResponse(metrics);
+					this.processMetrics(processedMetrics);
+
+					// Обновляем время сервера
+					document.getElementById('serverTime').textContent =
+						new Date().toLocaleTimeString();
+
+				} catch (error) {
+					console.error('Error updating metrics:', error);
+					this.addLog('Error getting metrics: ' + error.message);
+					// При ошибке устанавливаем значения по умолчанию
+					this.processMetrics({});
+				}
+			}
+
+			processMetricsResponse(metrics) {
+				// Если metrics - это строка, пробуем распарсить её как JSON
+				if (typeof metrics === 'string') {
+					console.log('Metrics is string, attempting to parse JSON...');
+					try {
+						const parsed = JSON.parse(metrics);
+						console.log('Successfully parsed metrics string:', parsed);
+						return parsed;
+					} catch (parseError) {
+						console.error('Failed to parse metrics string:', parseError);
+						this.addLog('Failed to parse metrics string as JSON');
+
+						// Пробуем извлечь данные из строки другими способами
+						return this.extractMetricsFromString(metrics);
+					}
+				}
+
+				// Если metrics - это уже объект, возвращаем как есть
+				if (typeof metrics === 'object' && metrics !== null) {
+					return metrics;
+				}
+
+				// Если metrics - это число или другой тип, создаем объект
+				if (metrics !== null && metrics !== undefined) {
+					console.log('Metrics is non-object type, creating object wrapper:', metrics);
+					return { value: metrics };
+				}
+
+				// Если metrics null или undefined, возвращаем пустой объект
+				console.log('Metrics is null or undefined, using empty object');
+				return {};
+			}
+
+			extractMetricsFromString(str) {
+				// Пробуем извлечь данные из строки разными способами
+				try {
+					// Пробуем найти JSON-like структуры в строке
+					const jsonMatch = str.match(/\{.*\}/);
+					if (jsonMatch) {
+						const parsed = JSON.parse(jsonMatch[0]);
+						console.log('Extracted JSON from string:', parsed);
+						return parsed;
+					}
+
+					// Пробуем извлечь пары ключ-значение
+					const keyValuePairs = {};
+					const pairs = str.match(/(\w+)\s*[:=]\s*([^,\s]+)/g);
+					if (pairs) {
+						pairs.forEach(pair => {
+							const [key, value] = pair.split(/[:=]/).map(s => s.trim());
+							keyValuePairs[key] = value;
+						});
+						console.log('Extracted key-value pairs:', keyValuePairs);
+						return keyValuePairs;
+					}
+
+					// Если не удалось извлечь структурированные данные, возвращаем строку как значение
+					console.log('Could not extract structured data, using string as value');
+					return { rawData: str };
+
+				} catch (error) {
+					console.error('Error extracting metrics from string:', error);
+					return { rawData: str };
+				}
+			}
+
+			processMetrics(metrics) {
+				// Безопасная обработка числовых значений с значениями по умолчанию
+				try {
+					console.log('Processing metrics:', metrics);
+
+					const currentPower = this.getSafeNumber(metrics.result.currentPower, 0);
+					this.updateValue('currentPower', currentPower.toFixed(2));
+
+					const voltage = this.getSafeNumber(metrics.result.voltage, 0);
+					this.updateValue('voltage', voltage.toFixed(1));
+
+					const temperature = this.getSafeNumber(metrics.result.temperature, 0);
+					this.updateValue('temperature', temperature.toFixed(1));
+
+					const connectedClients = this.getSafeNumber(metrics.result.connectedClients, 0);
+					this.updateValue('connectedClients', connectedClients);
+
+					const uptime = this.getSafeNumber(metrics.result.uptime, 0);
+					this.updateValue('uptime', uptime);
+
+					// Обновляем статус системы если есть в метриках
+					if (metrics.systemStatus) {
+						this.updateValue('systemStatus', metrics.systemStatus);
+					}
+
+				} catch (error) {
+					console.error('Error processing metrics:', error, metrics);
+					this.addLog('Error processing metrics data');
+					// При ошибке устанавливаем значения по умолчанию
+					this.setDefaultValues();
+				}
+			}
+
+			getSafeNumber(value, defaultValue = 0) {
+				// Проверяем на null, undefined, пустую строку
+				if (value === null || value === undefined || value === '') {
+					return defaultValue;
+				}
+
+				// Если значение - строка, пробуем извлечь число
+				if (typeof value === 'string') {
+					// Удаляем нечисловые символы (кроме точки и минуса)
+					const numericString = value.replace(/[^\d.-]/g, '');
+					if (numericString === '') {
+						return defaultValue;
+					}
+					value = numericString;
+				}
+
+				// Пробуем преобразовать в число
+				const numberValue = parseFloat(value);
+
+				// Проверяем на NaN
+				if (isNaN(numberValue)) {
+					console.warn(`Invalid number value: ${value}, using default: ${defaultValue}`);
+					return defaultValue;
+				}
+
+				return numberValue;
+			}
+
+			updateValue(key, value) {
+				// Сохраняем значение
+				this.values[key] = value;
+
+				console.log(`Updating ${key}:`, value, typeof value);
+
+				const element = document.getElementById(key);
+				if (element) {
+					// Специальная обработка для разных типов значений
+					switch (key) {
+						case 'currentPower':
+							const powerValue = this.getSafeNumber(value, 0);
+							element.textContent = powerValue.toFixed(2) + ' kW';
+							this.updatePowerBar(powerValue);
+							break;
+						case 'voltage':
+							const voltageValue = this.getSafeNumber(value, 0);
+							element.textContent = voltageValue.toFixed(1) + ' V';
+							break;
+						case 'temperature':
+							const tempValue = this.getSafeNumber(value, 0);
+							element.textContent = tempValue.toFixed(1) + '°C';
+							this.updateTemperatureColor(tempValue, element);
+							break;
+						case 'uptime':
+							const uptimeValue = this.getSafeNumber(value, 0);
+							element.textContent = this.formatUptime(uptimeValue);
+							break;
+						case 'systemStatus':
+							element.textContent = value || 'unknown';
+							this.updateStatusColor(value, element);
+							break;
+						case 'connectedClients':
+							const clientsValue = this.getSafeNumber(value, 0);
+							element.textContent = clientsValue;
+							break;
+						case 'chargingEnabled':
+							// Обновляем состояние кнопок
+							this.updateButtonStates(value === 'true');
+							break;
+						default:
+							element.textContent = value !== null && value !== undefined ? value : 'N/A';
+					}
+				}
+			}
+
+			updateButtonStates(chargingEnabled) {
+				const startBtn = document.getElementById('startCharging');
+				const stopBtn = document.getElementById('stopCharging');
+
+				if (chargingEnabled) {
+					startBtn.disabled = true;
+					stopBtn.disabled = false;
+					startBtn.style.opacity = '0.6';
+					stopBtn.style.opacity = '1';
+				} else {
+					startBtn.disabled = false;
+					stopBtn.disabled = true;
+					startBtn.style.opacity = '1';
+					stopBtn.style.opacity = '0.6';
+				}
+			}
+
+			updateStatusColor(status, element) {
+				const colors = {
+					'ready': '#27ae60',
+					'charging': '#3498db',
+					'error': '#e74c3c',
+					'maintenance': '#f39c12',
+					'disconnected': '#95a5a6'
+				};
+				element.style.color = colors[status] || '#2c3e50';
+			}
+
+			updatePowerBar(power) {
+				const maxPower = parseInt(this.values['maxPower'] || 50);
+				const percentage = Math.min((power / maxPower) * 100, 100);
+				const powerBar = document.getElementById('powerBar');
+				if (powerBar) {
+					powerBar.style.width = percentage + '%';
+
+					// Меняем цвет в зависимости от нагрузки
+					if (percentage > 90) {
+						powerBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+					} else if (percentage > 70) {
+						powerBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
+					} else {
+						powerBar.style.background = 'linear-gradient(90deg, #27ae60, #2ecc71)';
+					}
+				}
+			}
+
+			updateTemperatureColor(temp, element) {
+				if (temp > 60) {
+					element.style.color = '#e74c3c';
+				} else if (temp > 45) {
+					element.style.color = '#f39c12';
+				} else {
+					element.style.color = '#27ae60';
+				}
+			}
+
+			formatUptime(seconds) {
+				const secs = this.getSafeNumber(seconds, 0);
+				const days = Math.floor(secs / 86400);
+				const hours = Math.floor((secs % 86400) / 3600);
+				const minutes = Math.floor((secs % 3600) / 60);
+				const remainingSecs = secs % 60;
+
+				if (days > 0) {
+					return `${days}d ${hours}h ${minutes}m`;
+				} else if (hours > 0) {
+					return `${hours}h ${minutes}m ${remainingSecs}s`;
+				} else {
+					return `${minutes}m ${remainingSecs}s`;
+				}
+			}
+
+			updateConnectionStatus(connected) {
+				const statusElement = document.getElementById('connectionStatus');
+				if (connected) {
+					statusElement.textContent = 'Online';
+					statusElement.className = 'status-online';
+				} else {
+					statusElement.textContent = 'Offline';
+					statusElement.className = 'status-offline';
+				}
+			}
+
+			async sendCommand(command, params = {}) {
+				console.log(`Sending command: ${command}`, params);
+				this.addLog(`Sending command: ${command}`);
+
+				if (!this.rpcEnabled) {
+					const error = 'RPC is currently disabled. Please enable RPC to send commands.';
+					this.addLog('Error: ' + error);
+					alert(error);
+					return;
+				}
+
+				if (this.connectionState !== 'connected') {
+					const error = 'Not connected to server. Please check connection.';
+					this.addLog('Error: ' + error);
+					alert(error);
+					return;
+				}
+
+				try {
+					const result = await rpcClient.call(command, params);
+					this.addLog(`Command ${command} executed: ${JSON.stringify(result)}`);
+					console.log('Command result:', result);
+					return result;
+				} catch (error) {
+					const errorMsg = `Error executing ${command}: ${error.message}`;
+					this.addLog(errorMsg);
+					console.error('Command error:', error);
+					alert(errorMsg);
+				}
+			}
+
+			addLog(message, type = 'info') {
+				const logContainer = document.getElementById('eventLog');
+				const logEntry = document.createElement('div');
+				logEntry.className = 'log-entry';
+
+				if (type === 'debug') {
+					logEntry.style.color = '#666';
+					logEntry.style.fontSize = '0.9em';
+				}
+
+				logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+				logContainer.appendChild(logEntry);
+				logContainer.scrollTop = logContainer.scrollHeight;
+
+				// Ограничиваем количество записей
+				if (logContainer.children.length > 50) {
+					logContainer.removeChild(logContainer.firstChild);
+				}
+			}
+
+			showDebugInfo() {
+				const debugPanel = document.getElementById('debugPanel');
+				const debugInfo = document.getElementById('debugInfo');
+
+				const info = {
+					timestamp: new Date().toISOString(),
+					rpcClient: rpcClient.getDebugInfo(),
+					monitoringSystem: {
+						connectionState: this.connectionState,
+						rpcEnabled: this.rpcEnabled,
+						values: this.values,
+						lastMetrics: this.lastMetrics,
+						lastMetricsType: typeof this.lastMetrics,
+						metricsInterval: !!this.metricsInterval,
+						defaultValues: this.defaultValues
+					},
+					connection: {
+						url: 'ws://localhost:8080',
+						webSocketReadyState: rpcClient.ws ? rpcClient.ws.readyState : 'No connection'
+					}
+				};
+
+				debugInfo.textContent = JSON.stringify(info, null, 2);
+				debugPanel.style.display = 'block';
+
+				// Автоскролл к отладочной информации
+				debugPanel.scrollIntoView({ behavior: 'smooth' });
+			}
+		}
+
+		// Запускаем систему мониторинга при загрузке страницы
+		document.addEventListener('DOMContentLoaded', () => {
+			window.monitoringSystem = new MonitoringSystem();
+		});
+	</script>
+</body>
+
+</html>

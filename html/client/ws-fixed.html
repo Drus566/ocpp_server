@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>WS Fixed</title>
+	<style>
+		body {
+			font-family: Arial;
+			padding: 20px;
+		}
+
+		button {
+			padding: 10px;
+			margin: 5px;
+		}
+
+		#log {
+			border: 1px solid #ccc;
+			padding: 10px;
+			height: 300px;
+			overflow-y: scroll;
+		}
+
+		.sent {
+			color: blue;
+		}
+
+		.received {
+			color: green;
+		}
+
+		.error {
+			color: red;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>WebSocket Fixed Test</h1>
+	<button onclick="connect()">Connect</button>
+	<button onclick="sendPing()">Send Ping</button>
+	<button onclick="sendStart()">Start Charging</button>
+	<div>Status: <span id="status">Disconnected</span></div>
+	<div id="log"></div>
+
+	<script>
+        let ws = null;
+        let msgId = 1;
+        
+        function log(msg, type = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+        
+        function connect() {
+            if (ws) {
+                ws.close();
+            }
+            
+            log('Connecting to WebSocket...');
+            
+            // Явно указываем протокол 'websocket'
+            ws = new WebSocket('ws://localhost:8080', 'websocket');
+            
+            ws.onopen = function(e) {
+                document.getElementById('status').textContent = 'Connected';
+                log('✅ WebSocket CONNECTED!', 'received');
+                log(`Protocol: "${ws.protocol}"`);
+                log(`Ready State: ${ws.readyState}`);
+                log(`URL: ${ws.url}`);
+            };
+            
+            ws.onmessage = function(e) {
+                log(`📨 RECEIVED: ${e.data}`, 'received');
+            };
+            
+            ws.onerror = function(e) {
+                log('❌ WebSocket ERROR', 'error');
+                console.error('WebSocket error:', e);
+            };
+            
+            ws.onclose = function(e) {
+                document.getElementById('status').textContent = 'Disconnected';
+                log(`🔌 CLOSED: Code ${e.code}, Reason: "${e.reason}"`, 'error');
+                ws = null;
+            };
+        }
+        
+        function sendPing() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const msg = {
+                jsonrpc: "2.0",
+                id: msgId++,
+                method: "ping",
+                params: { time: Date.now() }
+            };
+            
+            const jsonMsg = JSON.stringify(msg);
+            ws.send(jsonMsg);
+            log(`📤 SENT: ${jsonMsg}`, 'sent');
+        }
+        
+        function sendStart() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const msg = {
+                jsonrpc: "2.0", 
+                id: msgId++,
+                method: "startCharging",
+                params: {}
+            };
+            
+            const jsonMsg = JSON.stringify(msg);
+            ws.send(jsonMsg);
+            log(`📤 SENT: ${jsonMsg}`, 'sent');
+        }
+        
+        // Auto connect
+        window.onload = connect;
+	</script>
+</body>
+
+</html>

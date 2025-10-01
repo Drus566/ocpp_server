@@ -1,0 +1,45 @@
+#################################################################################
+#                                Build options                                  #
+#################################################################################
+
+# Log level (0 = All logs, 5 = No logs)
+if(NOT DEFINED LOG_LEVEL)
+    set(LOG_LEVEL               1)
+endif()
+add_compile_definitions(LOG_LEVEL=${LOG_LEVEL})
+
+# Logger
+option(EXTERNAL_LOGGER              "Use an external logger"                                                OFF)
+if(EXTERNAL_LOGGER)
+    add_compile_definitions(EXTERNAL_LOGGER=1)
+endif()
+
+# Shared library
+option(BUILD_SHARED_LIBRARY         "Build Open OCPP as a shared library"                                   ON)
+
+# Static library
+option(BUILD_STATIC_LIBRARY         "Build Open OCPP as a static library"                                   ON)
+
+# Unit tests
+option(BUILD_UNIT_TESTS             "Build unit tests"                                                      ON)
+
+# Examples
+option(BUILD_EXAMPLES               "Build examples"                                                        ON)
+
+# Build the libwebsocket library along with the Open OCPP library
+option(BUILD_LWS_LIBRARY            "Build libwebsocket library"                                            ON)
+
+# Build the sqlite3 library along with the Open OCPP library
+option(BUILD_SQLITE                 "Build sqlite3 library"                                                 ON)
+
+# Install the Doctest header
+option(INSTALL_DOCTEST              "Install doctest headers"                                               ON)
+
+# Define Install Rapid Json headers
+option(INSTALL_RAPID_JSON           "Install headers of rapidjson"                                          ON)
+
+# Use only the CrtAllocator in Rapidjson, not the MemoryPoolAllocator
+option(USE_CRT_ALLOC_FOR_RAPIDJSON  "Use the CrtAllocator for Rapidjson instead of the MemoryPoolAllocator" OFF)
+if(USE_CRT_ALLOC_FOR_RAPIDJSON)
+    add_compile_definitions(RAPIDJSON_DEFAULT_ALLOCATOR=::RAPIDJSON_NAMESPACE::CrtAllocator)
+endif()

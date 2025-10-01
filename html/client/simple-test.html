@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Simple Test</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			padding: 20px;
+		}
+
+		button {
+			padding: 10px;
+			margin: 5px;
+		}
+
+		.status {
+			padding: 10px;
+			margin: 5px;
+		}
+
+		.online {
+			background: green;
+			color: white;
+		}
+
+		.offline {
+			background: red;
+			color: white;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Simple WebSocket Test</h1>
+	<button onclick="connect()">Connect</button>
+	<button onclick="startCharging()">Start Charging</button>
+	<button onclick="stopCharging()">Stop Charging</button>
+	<div id="status" class="status offline">Disconnected</div>
+	<div id="messages"></div>
+
+	<script>
+        let ws = null;
+        
+        function connect() {
+            ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = function() {
+                document.getElementById('status').className = 'status online';
+                document.getElementById('status').textContent = 'Connected';
+                addMessage('Connected to server');
+            };
+            
+            ws.onmessage = function(event) {
+                addMessage('Received: ' + event.data);
+                console.log('Received:', event.data);
+            };
+            
+            ws.onerror = function(error) {
+                addMessage('Error: ' + error);
+            };
+            
+            ws.onclose = function() {
+                document.getElementById('status').className = 'status offline';
+                document.getElementById('status').textContent = 'Disconnected';
+                addMessage('Disconnected');
+            };
+        }
+        
+        function startCharging() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "startCharging",
+                    params: {}
+                };
+                ws.send(JSON.stringify(message));
+                addMessage('Sent: startCharging');
+            } else {
+                addMessage('Not connected!');
+            }
+        }
+        
+        function stopCharging() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    jsonrpc: "2.0",
+                    id: 2,
+                    method: "stopCharging", 
+                    params: {}
+                };
+                ws.send(JSON.stringify(message));
+                addMessage('Sent: stopCharging');
+            } else {
+                addMessage('Not connected!');
+            }
+        }
+        
+        function addMessage(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            document.getElementById('messages').appendChild(div);
+        }
+	</script>
+</body>
+
+</html>

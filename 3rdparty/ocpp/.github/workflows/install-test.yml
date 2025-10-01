@@ -1,0 +1,21 @@
+name: Install test
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: sudo apt-get install -y libev-dev libuv1-dev
+    - name: make gcc install
+      run: make BUILD_TYPE=Release INSTALL_PREFIX=/tmp/install-gcc tests-install-gcc
+    - name: make clang install
+      run: make BUILD_TYPE=Release INSTALL_PREFIX=/tmp/install-clang tests-install-clang

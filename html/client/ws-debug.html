@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>WS Debug</title>
+	<style>
+		body {
+			font-family: Arial;
+			padding: 20px;
+		}
+
+		button {
+			padding: 10px;
+			margin: 5px;
+		}
+
+		#log {
+			border: 1px solid #ccc;
+			padding: 10px;
+			height: 300px;
+			overflow-y: scroll;
+			margin-top: 10px;
+		}
+
+		.sent {
+			color: blue;
+		}
+
+		.received {
+			color: green;
+		}
+
+		.error {
+			color: red;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>WebSocket Debug</h1>
+	<button onclick="connect()">1. Connect</button>
+	<button onclick="sendPing()">2. Send Ping</button>
+	<button onclick="sendStart()">3. Start Charging</button>
+	<button onclick="sendRaw()">4. Send Raw JSON</button>
+	<button onclick="disconnect()">Disconnect</button>
+
+	<div>Status: <span id="status">Disconnected</span></div>
+	<div id="log"></div>
+
+	<script>
+        let ws = null;
+        let msgId = 1;
+        
+        function log(msg, type = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+        
+        function connect() {
+            if (ws) return;
+            
+            log('Connecting to ws://localhost:8080...');
+            ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = function(e) {
+                document.getElementById('status').textContent = 'Connected';
+                log('✅ WebSocket CONNECTED!', 'received');
+                log('Ready State: ' + ws.readyState);
+                log('Protocol: ' + ws.protocol);
+            };
+            
+            ws.onmessage = function(e) {
+                log('📨 RECEIVED: ' + e.data, 'received');
+            };
+            
+            ws.onerror = function(e) {
+                log('❌ ERROR: ' + e, 'error');
+            };
+            
+            ws.onclose = function(e) {
+                document.getElementById('status').textContent = 'Disconnected';
+                log('🔌 CLOSED: ' + e.code + ' ' + e.reason, 'error');
+                ws = null;
+            };
+        }
+        
+        function sendPing() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const msg = {
+                jsonrpc: "2.0",
+                id: msgId++,
+                method: "ping",
+                params: { time: Date.now() }
+            };
+            
+            const jsonMsg = JSON.stringify(msg);
+            ws.send(jsonMsg);
+            log('📤 SENT PING: ' + jsonMsg, 'sent');
+        }
+        
+        function sendStart() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const msg = {
+                jsonrpc: "2.0", 
+                id: msgId++,
+                method: "startCharging",
+                params: {}
+            };
+            
+            const jsonMsg = JSON.stringify(msg);
+            ws.send(jsonMsg);
+            log('📤 SENT START: ' + jsonMsg, 'sent');
+        }
+        
+        function sendRaw() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const rawMsg = '{"jsonrpc":"2.0","id":999,"method":"test","params":{}}';
+            ws.send(rawMsg);
+            log('📤 SENT RAW: ' + rawMsg, 'sent');
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        // Auto connect
+        window.onload = connect;
+	</script>
+</body>
+
+</html>

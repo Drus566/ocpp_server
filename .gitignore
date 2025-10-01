@@ -1,0 +1,12 @@
+build
+bin
+app
+app_temp
+build/
+bin/
+/lib/
+app/
+app_temp/
+.vscode/
+modbus.log
+ModbusLog.txt
