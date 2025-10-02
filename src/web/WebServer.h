@@ -1,5 +1,7 @@
-#ifndef CS_WEB_WEBSERVER_HPP
-#define CS_WEB_WEBSERVER_HPP
+#ifndef OS_WEB_WEBSERVER_H
+#define OS_WEB_WEBSERVER_H
+
+#include "OcppManager.h"
 
 #include <libwebsockets.h>
 #include <string>
@@ -13,12 +15,9 @@
 #include <chrono>
 
 // RapidJSON
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/error/en.h"
+#include "json.h"
 
-namespace cs {
+namespace os {
 namespace web {
 
 // Предварительное объявление
@@ -109,7 +108,6 @@ private:
                                  void* user, void* in, size_t len);
     
     // Внутренние методы
-    void handleHttpRequest(struct lws* wsi, void* in, size_t len);
     void handleWebSocketConnect(struct lws* wsi);
     void handleWebSocketMessage(struct lws* wsi, void* in, size_t len);
     void handleWebSocketClose(struct lws* wsi);
@@ -168,7 +166,7 @@ private:
     // const char* WebServer::get_callback_reason_name(enum lws_callback_reasons reason);
 
 public:
-    WebServer(int port = 8080);
+    WebServer(os::ocpp::OcppManager& ocpp_manager, int port = 8080);
     ~WebServer();
     
     // Конфигурация
@@ -191,6 +189,8 @@ public:
     bool isRunning() const { return running; }
     int getPort() const { return port; }
     size_t getConnectionCount() const { return connections.size(); }
+
+    os::ocpp::OcppManager& m_ocpp_manager;
     
     // Статические утилиты
     static std::unordered_map<std::string, std::string> parseHeaders(const std::string& headers);
@@ -198,6 +198,6 @@ public:
 };
 
 } // namespace web
-} // namespace cs
+} // namespace os
 
-#endif // CS_WEB_WEBSERVER_HPP
+#endif // OS_WEB_WEBSERVER_H

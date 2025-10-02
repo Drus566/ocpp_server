@@ -27,6 +27,17 @@ public:
 	bool start();
 	bool stop();
 	bool resetData();
+	
+	int getChargePointsCount();
+	std::vector<std::string> getChargePointIds();
+
+	bool sendGetBaseReport(const std::string &id);
+	bool sendVariablesReq(const std::string &id, const std::string& component, const std::string& variable, const std::string& attribute);
+
+	bool sendTriggerStatusNotification(const std::string& id);
+	bool sendTriggerMeterValues(const std::string& id, const int evse_id);
+	bool sendTriggerHeartbit(const std::string &id);
+
 	// bool reconnect();
 	// bool isInit();
 
@@ -37,6 +48,8 @@ private:
 
 	bool m_init;
 	bool m_start;
+
+	std::shared_ptr<::ocpp::centralsystem::ocpp20::ICentralSystem20::IChargePoint20> getChargePointById(const std::string& id);
 };
 
 } // ocpp

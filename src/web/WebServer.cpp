@@ -9,7 +9,7 @@
 #include <random>
 #include <cmath>
 
-namespace cs {
+namespace os {
 namespace web {
 
 const char* get_callback_reason_name(enum lws_callback_reasons reason) {
@@ -57,12 +57,11 @@ const char* get_callback_reason_name(enum lws_callback_reasons reason) {
     }
 }
 
-
 // Статическая инициализация протоколов
 struct lws_protocols WebServer::protocols_[3];
 
 // WebSocketConnection implementation
-WebSocketConnection::WebSocketConnection(struct lws* wsi, int conn_id) 
+WebSocketConnection::WebSocketConnection(lws* wsi, int conn_id) 
     : wsi(wsi), connection_id(conn_id) {}
 
 void WebSocketConnection::send(const std::string& message) {
@@ -89,11 +88,13 @@ void WebSocketConnection::clearWriteBuffer() {
 }
 
 // WebServer implementation
-WebServer::WebServer(int port) 
-    : context(nullptr), port(port), running(false), next_connection_id(1) {
+
+WebServer::WebServer(os::ocpp::OcppManager& manager, int port) 
+    : m_ocpp_manager(manager), context(nullptr), port(port), running(false), next_connection_id(1) {
     initializeProtocols();
     initializeValues();
 }
+
 
 WebServer::~WebServer() {
     stop();
@@ -281,51 +282,6 @@ int WebServer::callback_http(struct lws* wsi, enum lws_callback_reasons reason,
     
     return 0;
 }
-// Добавьте перед callback_websocket
-// const char* WebServer::get_callback_reason_name(enum lws_callback_reasons reason) {
-//     switch (reason) {
-//         case LWS_CALLBACK_ESTABLISHED: return "LWS_CALLBACK_ESTABLISHED";
-//         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR: return "LWS_CALLBACK_CLIENT_CONNECTION_ERROR";
-//         case LWS_CALLBACK_CLIENT_FILTER_PRE_ESTABLISH: return "LWS_CALLBACK_CLIENT_FILTER_PRE_ESTABLISH";
-//         case LWS_CALLBACK_CLIENT_ESTABLISHED: return "LWS_CALLBACK_CLIENT_ESTABLISHED";
-//         case LWS_CALLBACK_CLOSED: return "LWS_CALLBACK_CLOSED";
-//         case LWS_CALLBACK_CLOSED_HTTP: return "LWS_CALLBACK_CLOSED_HTTP";
-//         case LWS_CALLBACK_RECEIVE: return "LWS_CALLBACK_RECEIVE";
-//         case LWS_CALLBACK_RECEIVE_PONG: return "LWS_CALLBACK_RECEIVE_PONG";
-//         case LWS_CALLBACK_CLIENT_RECEIVE: return "LWS_CALLBACK_CLIENT_RECEIVE";
-//         case LWS_CALLBACK_CLIENT_RECEIVE_PONG: return "LWS_CALLBACK_CLIENT_RECEIVE_PONG";
-//         case LWS_CALLBACK_CLIENT_WRITEABLE: return "LWS_CALLBACK_CLIENT_WRITEABLE";
-//         case LWS_CALLBACK_SERVER_WRITEABLE: return "LWS_CALLBACK_SERVER_WRITEABLE";
-//         case LWS_CALLBACK_HTTP: return "LWS_CALLBACK_HTTP";
-//         case LWS_CALLBACK_HTTP_BODY: return "LWS_CALLBACK_HTTP_BODY";
-//         case LWS_CALLBACK_HTTP_BODY_COMPLETION: return "LWS_CALLBACK_HTTP_BODY_COMPLETION";
-//         case LWS_CALLBACK_HTTP_FILE_COMPLETION: return "LWS_CALLBACK_HTTP_FILE_COMPLETION";
-//         case LWS_CALLBACK_HTTP_WRITEABLE: return "LWS_CALLBACK_HTTP_WRITEABLE";
-//         case LWS_CALLBACK_FILTER_NETWORK_CONNECTION: return "LWS_CALLBACK_FILTER_NETWORK_CONNECTION";
-//         case LWS_CALLBACK_FILTER_HTTP_CONNECTION: return "LWS_CALLBACK_FILTER_HTTP_CONNECTION";
-//         case LWS_CALLBACK_SERVER_NEW_CLIENT_INSTANTIATED: return "LWS_CALLBACK_SERVER_NEW_CLIENT_INSTANTIATED";
-//         case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: return "LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION";
-//         case LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS: return "LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS";
-//         case LWS_CALLBACK_OPENSSL_LOAD_EXTRA_SERVER_VERIFY_CERTS: return "LWS_CALLBACK_OPENSSL_LOAD_EXTRA_SERVER_VERIFY_CERTS";
-//         case LWS_CALLBACK_OPENSSL_PERFORM_CLIENT_CERT_VERIFICATION: return "LWS_CALLBACK_OPENSSL_PERFORM_CLIENT_CERT_VERIFICATION";
-//         case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: return "LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER";
-//         case LWS_CALLBACK_CONFIRM_EXTENSION_OKAY: return "LWS_CALLBACK_CONFIRM_EXTENSION_OKAY";
-//         case LWS_CALLBACK_CLIENT_CONFIRM_EXTENSION_SUPPORTED: return "LWS_CALLBACK_CLIENT_CONFIRM_EXTENSION_SUPPORTED";
-//         case LWS_CALLBACK_PROTOCOL_INIT: return "LWS_CALLBACK_PROTOCOL_INIT";
-//         case LWS_CALLBACK_PROTOCOL_DESTROY: return "LWS_CALLBACK_PROTOCOL_DESTROY";
-//         case LWS_CALLBACK_WSI_CREATE: return "LWS_CALLBACK_WSI_CREATE";
-//         case LWS_CALLBACK_WSI_DESTROY: return "LWS_CALLBACK_WSI_DESTROY";
-//         case LWS_CALLBACK_GET_THREAD_ID: return "LWS_CALLBACK_GET_THREAD_ID";
-//         case LWS_CALLBACK_ADD_POLL_FD: return "LWS_CALLBACK_ADD_POLL_FD";
-//         case LWS_CALLBACK_DEL_POLL_FD: return "LWS_CALLBACK_DEL_POLL_FD";
-//         case LWS_CALLBACK_CHANGE_MODE_POLL_FD: return "LWS_CALLBACK_CHANGE_MODE_POLL_FD";
-//         case LWS_CALLBACK_LOCK_POLL: return "LWS_CALLBACK_LOCK_POLL";
-//         case LWS_CALLBACK_UNLOCK_POLL: return "LWS_CALLBACK_UNLOCK_POLL";
-//         // case LWS_CALLBACK_OPENSSL_CONTEXT_REQUIRES_PRIVATE_KEY: return "LWS_CALLBACK_OPENSSL_CONTEXT_REQUIRES_PRIVATE_KEY";
-//         case LWS_CALLBACK_USER: return "LWS_CALLBACK_USER";
-//         default: return "UNKNOWN";
-//     }
-// }
 
 int WebServer::callback_websocket(struct lws* wsi, enum lws_callback_reasons reason, 
                                  void* user, void* in, size_t len) {
@@ -428,7 +384,7 @@ void WebServer::sendHttpResponse(struct lws* wsi, const std::string& content, in
 std::string WebServer::generateDefaultResponse(const std::string& uri) {
     if (uri == std::string("/") || uri == std::string("/index.html")) {
         // Пытаемся прочитать index.html из папки
-        std::string content = readFile("html/client/index.html");
+        std::string content = readFile("web/index.html");
         if (!content.empty()) {
             return content;
         }
@@ -436,7 +392,7 @@ std::string WebServer::generateDefaultResponse(const std::string& uri) {
         return R"(<!DOCTYPE html>
             <html>
             <head>
-                <title>CS Web Server - Fallback</title>
+                <title>OS Web Server - Fallback</title>
                 <style>
                     body { font-family: Arial, sans-serif; margin: 40px; }
                     .container { max-width: 800px; margin: 0 auto; }
@@ -444,9 +400,9 @@ std::string WebServer::generateDefaultResponse(const std::string& uri) {
             </head>
             <body>
                 <div class="container">
-                    <h1>CS Web Server - Fallback Mode</h1>
+                    <h1>OS Web Server - Fallback Mode</h1>
                     <p>Static files not found. Running in fallback mode.</p>
-                    <p>Please check that the 'html/client' directory exists with static files.</p>
+                    <p>Please check that the 'web/' directory exists with static files.</p>
                 </div>
             </body>
             </html>)";
@@ -461,7 +417,7 @@ std::string WebServer::generateDefaultResponse(const std::string& uri) {
     } 
     else {
         // Пытаемся прочитать 404.html из папки
-        std::string content = readFile("html/client/404.html");
+        std::string content = readFile("web/404.html");
         if (!content.empty()) {
             return content;
         }
@@ -482,11 +438,6 @@ std::string WebServer::generateDefaultResponse(const std::string& uri) {
             </body>
             </html>)";
     }
-}
-
-void WebServer::handleHttpRequest(struct lws* wsi, void* in, size_t len) {
-    // Этот метод теперь не используется напрямую в колбэке
-    // Вся обработка перенесена в callback_http
 }
 
 void WebServer::handleWebSocketConnect(struct lws* wsi) {
@@ -690,7 +641,7 @@ std::string WebServer::getMimeType(const std::string& filePath) {
 
 // Метод для обслуживания статических файлов
 bool WebServer::serveStaticFile(struct lws* wsi, const std::string& uri) {
-    std::string basePath = "html/client";
+    std::string basePath = "web";
     std::string filePath = basePath + uri;
 
     std::cout << "Trying to serve static file: " << filePath << std::endl;
@@ -743,7 +694,7 @@ void WebServer::initializeValues() {
     values_["currentSession"] = "0";
     values_["totalEnergy"] = "0";
     values_["firmwareVersion"] = "1.0.0";
-    values_["operator"] = "CS System";
+    values_["operator"] = "OS System";
     
     // Инициализация метрик
     metrics_.currentPower = 0.0;
@@ -1172,4 +1123,4 @@ std::string WebServer::handleSetMaxPower(const rapidjson::Value& params) {
 }
 
 } // namespace web
-} // namespace cs
+} // namespace os

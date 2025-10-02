@@ -11,6 +11,8 @@ target_link_libraries(os_ocpp_manager PUBLIC
 	# cs_connectors
 	os_ocpp_event
 	
+   #  examples_common20
+   ocpp_centralsystem20
 
 	# open-ocpp-static
 	# cs_helpers

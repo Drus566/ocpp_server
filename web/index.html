@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OCPP Сервер</title>
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+	<div class="container">
+		<header class="header">
+			<h1 class="header__title">OCPP 2.0.1 Central System</h1>
+		</header>
+
+		<main class="main">
+			<!-- Выбор станции -->
+			<section class="station-selector">
+				<label for="station-select" class="station-selector__label">Выберите станцию:</label>
+				<select id="station-select" class="station-selector__dropdown">
+					<option value="station-1">Станция 1</option>
+					<option value="station-2">Станция 2</option>
+					<option value="station-3">Станция 3</option>
+				</select>
+			</section>
+
+			<!-- Информация о станции -->
+			<section class="station-info">
+				<h2 class="station-info__title">Информация о станции</h2>
+				<div class="station-info__grid">
+					<div class="info-item">
+						<span class="info-item__label">Статус:</span>
+						<span class="info-item__value status--working" id="station__status">В работе</span>
+					</div>
+					<div class="info-item">
+						<span class="info-item__label">Количество коннекторов:</span>
+						<span class="info-item__value" id="station__connectors_count">4</span>
+					</div>
+					<div class="info-item">
+						<span class="info-item__label">Максимальная мощность:</span>
+						<span class="info-item__value" id="station__max_power">150 кВт</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- Управление станцией -->
+			<section class="station-controls">
+				<h2 class="station-controls__title">Управление станцией</h2>
+				<div class="controls-grid">
+					<button class="btn btn--danger" id="station_control__disconnect">Отключить станцию</button>
+
+					<div class="btn-with-tooltip bordered">
+						<button class="btn btn--primary" id="station_control__boot_notification">Получить информацию</button>
+						<div class="tooltip-icon" data-tooltip="Boot notification">?</div>
+					</div>
+
+					<div class="availability-control bordered">
+						<button class="btn btn--primary" id="station_control__change_availability">Доступность</button>
+						<div class="availability-control__options">
+							<label class="radio-option">
+								<input id="station_control__change_availability_on" type="radio" name="availability" value="available" checked>
+								<span class="radio-custom"></span>
+								Доступна
+							</label>
+							<label class="radio-option">
+								<input id="station_control__change_availability_off" type="radio" name="availability" value="unavailable">
+								<span class="radio-custom"></span>
+								Недоступна
+							</label>
+						</div>
+					</div>
+
+					<button class="btn btn--primary" id="station_control__get_configuration">Получить конфигурацию</button>
+
+					<div class="variable-control bordered">
+						<div class="btn-with-tooltip">
+							<button class="btn btn--primary" id="station_control__get_variable">Получить переменную</button>
+							<div class="tooltip-icon" data-tooltip="Запрос значения одной или нескольких конфигурационных переменных.">?</div>
+						</div>
+						<div class="variable-control__inputs">
+							<input id="station_control__get_variable_component" type="text" class="input-field" placeholder="Component">
+							<input id="station_control__get_variable_variable" type="text" class="input-field" placeholder="Variable">
+							<input id="station_control__get_variable_attribute" type="text" class="input-field" placeholder="Attribute">
+						</div>
+					</div>
+
+					<div class="variable-control bordered">
+						<div class="btn-with-tooltip">
+							<button class="btn btn--primary" id="station_control__set_variable">Записать переменную</button>
+							<div class="tooltip-icon" data-tooltip="Установка значения одной или нескольких конфигурационных переменных.">?</div>
+						</div>
+						<div class="variable-control__inputs">
+							<input id="station_control__set_variable_component" type="text" class="input-field" placeholder="Component">
+							<input id="station_control__set_variable_variable"  type="text" class="input-field" placeholder="Variable">
+							<input id="station_control__set_variable_attribute" type="text" class="input-field" placeholder="Attribute">
+						</div>
+					</div>
+
+					<div class="btn-with-tooltip bordered">
+						<button class="btn btn--warning" id="station_control__reset">Перезагрузка</button>
+						<div class="tooltip-icon" data-tooltip="Запрос на перезагрузку зарядной станции">?</div>
+					</div>
+
+					<div class="btn-with-tooltip bordered">
+						<button class="btn btn--warning" id="station_control__clear_cache">Очистить кэш</button>
+						<div class="tooltip-icon"
+							data-tooltip="Запрос на очистку кеша авторизации (например, очистка локального списка)">?</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Группа кнопок Trigger -->
+			<section class="trigger-controls">
+				<h2 class="trigger-controls__title">Отправление триггеров</h2>
+				<div class="controls-grid">
+					<div class="trigger-item bordered">
+						<button class="btn btn--secondary" id="station_control__trigger_meter_values">Meter values</button>
+						<input type="text" class="input-field" placeholder="EVSE ID">
+					</div>
+					<button class="btn btn--secondary" id="station_control__trigger_status_notification">Status notification</button>
+					<button class="btn btn--secondary" id="station_control__trigger_heartbeat">Heartbeat</button>
+				</div>
+			</section>
+
+			<!-- Выбор коннектора -->
+			<section class="connector-selector">
+				<label for="connector-select" class="connector-selector__label">Выберите коннектор:</label>
+				<select id="connector-select" class="connector-selector__dropdown">
+					<option value="connector-1">Коннектор 1</option>
+					<option value="connector-2">Коннектор 2</option>
+					<option value="connector-3">Коннектор 3</option>
+					<option value="connector-4">Коннектор 4</option>
+				</select>
+			</section>
+
+			<!-- Информация о коннекторе -->
+			<section class="connector-info">
+				<h2 class="connector-info__title">Информация о коннекторе</h2>
+				<div class="connector-info__grid">
+					<div class="info-item">
+						<span class="info-item__label">Тип коннектора:</span>
+						<span class="info-item__value">CCS2</span>
+					</div>
+					<div class="info-item">
+						<span class="info-item__label">Статус:</span>
+						<span class="info-item__value status-indicator status-indicator--ok" id="connector__status">OK</span>
+					</div>
+					<div class="info-item">
+						<span class="info-item__label">Счетчик:</span>
+						<span class="info-item__value" id="connector__meter">45.2 kWh</span>
+					</div>
+					<div class="info-item">
+						<span class="info-item__label">Мощность:</span>
+						<span class="info-item__value" id="connector__power">22.5 kW</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- Управление коннекторами -->
+			<section class="connector-controls">
+				<h2 class="connector-controls__title">Управление коннектором</h2>
+				<div class="controls-grid">
+					<button class="btn btn--primary" id="connector_control__request_start_transaction">RequestStartTransaction</button>
+					<button class="btn btn--primary" id="connector_control__request_stop_transaction">RequestStopTransaction</button>
+					<button class="btn btn--primary" id="connector_control__unlock_connector">UnlockConnector</button>
+				</div>
+			</section>
+
+			<!-- Лог событий -->
+			<section class="log-section">
+				<h2 class="log-section__title">Лог событий</h2>
+				<div class="log-container">
+					<div class="log-entry">
+						<span class="log-entry__time">[12:34:56]</span>
+						<span class="log-entry__message">Станция подключена к сети</span>
+					</div>
+					<div class="log-entry">
+						<span class="log-entry__time">[12:35:10]</span>
+						<span class="log-entry__message">Коннектор 1 начал зарядку</span>
+					</div>
+					<div class="log-entry">
+						<span class="log-entry__time">[12:40:22]</span>
+						<span class="log-entry__message">Получена конфигурация станции</span>
+					</div>
+					<!-- Здесь будут добавляться новые записи лога -->
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<script>
+		// Функционал для подсказок
+		document.addEventListener('DOMContentLoaded', function () {
+			const tooltipIcons = document.querySelectorAll('.tooltip-icon');
+
+			tooltipIcons.forEach(icon => {
+				const tooltipText = icon.getAttribute('data-tooltip');
+				const tooltip = document.createElement('div');
+				tooltip.className = 'tooltip';
+				tooltip.textContent = tooltipText;
+				icon.appendChild(tooltip);
+
+				icon.addEventListener('mouseenter', function () {
+					tooltip.classList.add('tooltip--visible');
+				});
+
+				icon.addEventListener('mouseleave', function () {
+					tooltip.classList.remove('tooltip--visible');
+				});
+			});
+		});
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,469 @@
+/* styles.css */
+
+/* Базовые стили и сброс */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+:root {
+	--primary-color: #3498db;
+	--primary-dark: #2980b9;
+	--secondary-color: #2ecc71;
+	--secondary-dark: #27ae60;
+	--danger-color: #e74c3c;
+	--danger-dark: #c0392b;
+	--warning-color: #f39c12;
+	--warning-dark: #e67e22;
+	--text-color: #333;
+	--text-light: #777;
+	--bg-color: #f9f9f9;
+	--card-bg: #fff;
+	--border-color: #e1e1e1;
+	--shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+	--border-radius: 8px;
+	--transition: all 0.3s ease;
+}
+
+body {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	line-height: 1.6;
+	color: var(--text-color);
+	background-color: var(--bg-color);
+}
+
+/* Основная серая рамка */
+.bordered {
+	border: 1px solid;
+	border-radius: var(--border-radius);
+	border-color: var(--border-color);
+	padding: 10px;
+}
+
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+}
+
+/* Заголовок */
+.header {
+	margin-bottom: 30px;
+	text-align: center;
+}
+
+.header__title {
+	font-size: 2rem;
+	color: var(--primary-color);
+	font-weight: 600;
+}
+
+/* Основной контент */
+.main {
+	display: flex;
+	flex-direction: column;
+	gap: 30px;
+}
+
+/* Секции */
+section {
+	background-color: var(--card-bg);
+	border-radius: var(--border-radius);
+	box-shadow: var(--shadow);
+	padding: 20px;
+}
+
+/* Заголовки секций */
+.station-info__title,
+.station-controls__title,
+.trigger-controls__title,
+.connector-info__title,
+.connector-controls__title,
+.log-section__title {
+	font-size: 1.5rem;
+	margin-bottom: 15px;
+	color: var(--primary-color);
+	border-bottom: 1px solid var(--border-color);
+	padding-bottom: 10px;
+}
+
+/* Выбор станции и коннектора */
+.station-selector,
+.connector-selector {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.station-selector__label,
+.connector-selector__label {
+	font-weight: 500;
+}
+
+.station-selector__dropdown,
+.connector-selector__dropdown {
+	padding: 8px 12px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background-color: var(--card-bg);
+	font-size: 1rem;
+	flex-grow: 1;
+	max-width: 300px;
+}
+
+/* Информационные блоки */
+.station-info__grid,
+.connector-info__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 15px;
+}
+
+.info-item {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.info-item__label {
+	font-weight: 500;
+	color: var(--text-light);
+	font-size: 0.9rem;
+}
+
+.info-item__value {
+	font-size: 1.1rem;
+}
+
+/* Статусы */
+.status--working {
+	color: var(--secondary-color);
+	font-weight: 500;
+}
+
+.status--alarm {
+	color: var(--danger-color);
+	font-weight: 500;
+}
+
+.status--disabled {
+	color: var(--text-light);
+	font-weight: 500;
+}
+
+.status-indicator {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 20px;
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: white;
+}
+
+.status-indicator--alarm-ev,
+.status-indicator--alarm-cp {
+	background-color: var(--danger-color);
+}
+
+.status-indicator--ok,
+.status-indicator--in {
+	background-color: var(--secondary-color);
+}
+
+.status-indicator--charge {
+	background-color: var(--primary-color);
+}
+
+.status-indicator--unavailable {
+	background-color: var(--text-light);
+}
+
+/* Кнопки и элементы управления */
+.controls-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 15px;
+	align-items: start;
+}
+
+.btn {
+	padding: 10px 15px;
+	border: none;
+	border-radius: var(--border-radius);
+	font-size: 1rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: var(--transition);
+	text-align: center;
+	display: inline-block;
+	text-decoration: none;
+}
+
+.btn--primary {
+	background-color: var(--primary-color);
+	color: white;
+}
+
+.btn--primary:hover {
+	background-color: var(--primary-dark);
+}
+
+.btn--secondary {
+	background-color: var(--secondary-color);
+	color: white;
+}
+
+.btn--secondary:hover {
+	background-color: var(--secondary-dark);
+}
+
+.btn--danger {
+	background-color: var(--danger-color);
+	color: white;
+}
+
+.btn--danger:hover {
+	background-color: var(--danger-dark);
+}
+
+.btn--warning {
+	background-color: var(--warning-color);
+	color: white;
+}
+
+.btn--warning:hover {
+	background-color: var(--warning-dark);
+}
+
+/* Кнопки с подсказками */
+.btn-with-tooltip {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.tooltip-icon {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background-color: var(--primary-color);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.8rem;
+	cursor: help;
+	position: relative;
+}
+
+.tooltip {
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: #333;
+	color: white;
+	padding: 8px 12px;
+	border-radius: 4px;
+	font-size: 0.8rem;
+	width: 200px;
+	text-align: center;
+	opacity: 0;
+	visibility: hidden;
+	transition: var(--transition);
+	z-index: 10;
+	margin-bottom: 5px;
+}
+
+.tooltip--visible {
+	opacity: 1;
+	visibility: visible;
+}
+
+.tooltip:after {
+	content: '';
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	border: 5px solid transparent;
+	border-top-color: #333;
+}
+
+/* Элементы управления доступностью */
+.availability-control {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+
+}
+
+.availability-control__label {
+	font-weight: 500;
+}
+
+.availability-control__options {
+	display: flex;
+	gap: 15px;
+}
+
+.radio-option {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	cursor: pointer;
+}
+
+.radio-option input {
+	display: none;
+}
+
+.radio-custom {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	border: 2px solid var(--border-color);
+	display: inline-block;
+	position: relative;
+}
+
+.radio-option input:checked+.radio-custom {
+	border-color: var(--primary-color);
+}
+
+.radio-option input:checked+.radio-custom:after {
+	content: '';
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background-color: var(--primary-color);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+/* Управление переменными */
+.variable-control {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.variable-control__title {
+	font-size: 1.2rem;
+	margin-bottom: 5px;
+}
+
+.variable-control__inputs {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.input-field {
+	padding: 8px 12px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	font-size: 1rem;
+}
+
+/* Триггер элементы */
+.trigger-item {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+/* Лог событий */
+.log-container {
+	max-height: 300px;
+	overflow-y: auto;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 15px;
+	background-color: #f5f5f5;
+}
+
+.log-entry {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.log-entry:last-child {
+	border-bottom: none;
+}
+
+.log-entry__time {
+	font-weight: 500;
+	color: var(--primary-color);
+	margin-right: 10px;
+}
+
+.log-entry__message {
+	color: var(--text-color);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+	.container {
+		padding: 10px;
+	}
+
+	.header__title {
+		font-size: 1.5rem;
+	}
+
+	section {
+		padding: 15px;
+	}
+
+	.station-info__grid,
+	.connector-info__grid,
+	.controls-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.station-selector,
+	.connector-selector {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.station-selector__dropdown,
+	.connector-selector__dropdown {
+		max-width: 100%;
+		width: 100%;
+	}
+
+	.availability-control__options {
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.tooltip {
+		width: 150px;
+	}
+}
+
+@media (max-width: 480px) {
+	.header__title {
+		font-size: 1.3rem;
+	}
+
+	.station-info__title,
+	.station-controls__title,
+	.trigger-controls__title,
+	.connector-info__title,
+	.connector-controls__title,
+	.log-section__title {
+		font-size: 1.3rem;
+	}
+
+	.btn {
+		padding: 8px 12px;
+		font-size: 0.9rem;
+	}
+}

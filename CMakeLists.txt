@@ -23,7 +23,12 @@ add_library(ocpp_server_dynamic SHARED
 add_executable(ocpp_server main.cpp)
 
 target_link_libraries(ocpp_server PRIVATE
-   stdc++fs
+   os_ocpp_manager
+   os_ocpp_event
+   os_ocpp_config
+   os_web_server
+   ocpp_server_dynamic
+   stdc++fs   
 )
 
-# include(CMakeLists_app.txt)
+include(CMakeLists_app.txt)

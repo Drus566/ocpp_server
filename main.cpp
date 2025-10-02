@@ -1,4 +1,5 @@
-// #include "WebServer.h"
+#include "WebServer.h"
+#include "OcppManager.h"
 
 #include <iostream>
 #include <experimental/filesystem>
@@ -7,6 +8,34 @@
 #include <thread>
 
 int main(void) {
+	std::cout << "main: Current directory " << std::experimental::filesystem::current_path().c_str() << std::endl;
+	std::string config = "config/ocpp_config.ini";
+
+	std::unique_ptr<os::ocpp::OcppManager> manager = std::make_unique<os::ocpp::OcppManager>();
+	if (!manager->init(config)) {
+		std::cout << "main: Error parse ocpp server" << std::endl;
+		return -1;
+	}
+
+	if (!manager->start()) {
+		std::cout << "main: Error start ocpp server" << std::endl;
+		return -1;
+	}
+
+	os::web::WebServer server(*manager.get(), 8080);
+
+	// Запускаем сервер
+	if (server.start()) {
+		std::thread serverThread([&server]()
+										 { server.run(); });
+
+		std::cout << "Press Enter to stop server..." << std::endl;
+		std::cin.get();
+
+		server.stop();
+		serverThread.join();
+	}
+
 	// std::cout << "main: Current directory " << std::experimental::filesystem::current_path().c_str() << std::endl;
 	// std::string charge_station_config_path = "config/charge_station.ini";
 	
@@ -64,7 +93,7 @@ int main(void) {
 
 	// std::cout << "main: End of program" << std::endl;
 
-   //  cs::web::WebServer server(8080);
+   // os::web::WebServer server(8080);
     
     // // Настраиваем обработчик HTTP запросов (опционально)
     // server.setHttpHandler([](const std::string& uri, const std::string& method,
@@ -82,19 +111,6 @@ int main(void) {
     //     // Для всех остальных запросов вернем 404, чтобы сервер попробовал статические файлы
     //     return 404;
     // });
-    
-    // Запускаем сервер
-   //  if (server.start()) {
-   //      std::thread serverThread([&server]() {
-   //          server.run();
-   //      });
-        
-   //      std::cout << "Press Enter to stop server..." << std::endl;
-   //      std::cin.get();
-        
-   //      server.stop();
-   //      serverThread.join();
-   //  }
-    
-    return 0;
+
+   return 0;
 }

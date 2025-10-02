@@ -1,5 +1,0 @@
-namespace cs {
-namespace server {
-
-}
-}

@@ -1,5 +1,5 @@
 add_custom_target(final_post_build ALL
-   DEPENDS charge_station open-ocpp-dynamic mb-shared mb-static
+   DEPENDS ocpp_server open-ocpp-dynamic
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/app/bin
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/app/lib
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/app/certificates
@@ -10,40 +10,20 @@ add_custom_target(final_post_build ALL
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/app/database
 
 	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/bin/charge_station
-   ${CMAKE_SOURCE_DIR}/app/bin/charge_station
+   ${CMAKE_SOURCE_DIR}/bin/ocpp_server
+   ${CMAKE_SOURCE_DIR}/app/bin/ocpp_server
 
 	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/lib/libcs_charge_station_dynamic.so
-   ${CMAKE_SOURCE_DIR}/app/lib/libcs_charge_station_dynamic.so
+   ${CMAKE_SOURCE_DIR}/lib/libocpp_server_dynamic.so
+   ${CMAKE_SOURCE_DIR}/app/lib/libocpp_server_dynamic.so
 
 	COMMAND ${CMAKE_COMMAND} -E copy
    ${CMAKE_SOURCE_DIR}/lib/ocpp/libopen-ocpp.so.2.0.0
    ${CMAKE_SOURCE_DIR}/app/lib/libopen-ocpp.so.2.0.0
 
 	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/lib/modbus/libmb-shared.so
-   ${CMAKE_SOURCE_DIR}/app/lib/libmb-shared.so
-
-	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/config/charge_station.ini
-   ${CMAKE_SOURCE_DIR}/app/config/charge_station.ini
-
-	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/config/modbus.ini
-   ${CMAKE_SOURCE_DIR}/app/config/modbus.ini
-
-	COMMAND ${CMAKE_COMMAND} -E copy
    ${CMAKE_SOURCE_DIR}/config/ocpp_config.ini
    ${CMAKE_SOURCE_DIR}/app/config/ocpp_config.ini
-
-	COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/config/ocpp_model.json
-   ${CMAKE_SOURCE_DIR}/app/config/ocpp_model.json
-
-   COMMAND ${CMAKE_COMMAND} -E copy
-   ${CMAKE_SOURCE_DIR}/config/ocpp_model.json
-   ${CMAKE_SOURCE_DIR}/app/config/ocpp_model.json
 
 	COMMAND ${CMAKE_COMMAND} -E copy_directory
    ${CMAKE_SOURCE_DIR}/3rdparty/ocpp/schemas
@@ -54,7 +34,7 @@ add_custom_target(final_post_build ALL
    ${CMAKE_SOURCE_DIR}/app/certificates
 
    COMMAND ${CMAKE_COMMAND} -E copy_directory
-   ${CMAKE_SOURCE_DIR}/html
-   ${CMAKE_SOURCE_DIR}/app/html
+   ${CMAKE_SOURCE_DIR}/web
+   ${CMAKE_SOURCE_DIR}/app/web
 
 )

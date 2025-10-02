@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OCPP 2.0.1 Central System</title>
+	<link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+	<div class="container">
+		<header>
+			<h1>OCPP 2.0.1 Central System</h1>
+		</header>
+
+		<div class="station-count">
+			<p id="station-count">Количество подключенных станций: 0</p>
+		</div>
+
+		<div class="station-selector">
+			<label for="station-select">Выберите станцию:</label>
+			<select id="station-select">
+				<option value="">-- Выберите станцию --</option>
+				<!-- Станции будут добавлены динамически -->
+			</select>
+		</div>
+
+		<div class="station-info" id="station-info" style="display: none;">
+			<div class="station-icon-container">
+				<div class="station-icon" id="station-icon">
+					⚡
+				</div>
+				<div class="station-status" id="station-status">Connected</div>
+			</div>
+			<div class="station-details">
+				<h2 id="station-id">ID станции</h2>
+				<p id="connector-count">Connector count: 0</p>
+				<p id="max-power">Максимальная мощность: 0 kW</p>
+			</div>
+			<div class="station-actions">
+				<button id="disconnect-btn">Disconnect</button>
+				<button id="get-report-btn">Get base report</button>
+			</div>
+		</div>
+
+		<div class="connector-selector" id="connector-selector" style="display: none;">
+			<label for="connector-select">Выберите коннектор:</label>
+			<select id="connector-select">
+				<option value="">-- Выберите коннектор --</option>
+				<!-- Коннекторы будут добавлены динамически -->
+			</select>
+		</div>
+
+		<div class="connector-info" id="connector-info" style="display: none;">
+			<h3>Информация о коннекторе</h3>
+			<p><strong>Тип коннектора:</strong> <span id="connector-type">-</span></p>
+			<p><strong>Статус:</strong> <span class="connector-status" id="connector-status">-</span></p>
+			<p><strong>Счетчик (Meter):</strong> <span id="connector-meter">0</span> kWh</p>
+			<p><strong>Мощность (Power):</strong> <span id="connector-power">0</span> kW</p>
+		</div>
+
+		<div class="actions">
+			<h2>Действия</h2>
+
+			<div class="action-group">
+				<h3>Отправка переменных (Send variables)</h3>
+				<div class="action-inputs">
+					<button id="send-variables-btn">SendVariables</button>
+					<input type="text" id="component-input" placeholder="Component">
+					<input type="text" id="variable-input" placeholder="Variable">
+					<input type="text" id="attribute-input" placeholder="Attribute">
+				</div>
+			</div>
+
+			<div class="action-group">
+				<h3>Отправка тригера Status Notification</h3>
+				<button id="send-status-btn">SendTriggerStatusNotification</button>
+			</div>
+
+			<div class="action-group">
+				<h3>Отправка тригера Meter Values</h3>
+				<div class="action-inputs">
+					<button id="send-meter-btn">SendTriggerMeterValues</button>
+					<input type="number" id="evse-id-input" placeholder="EVSE ID">
+				</div>
+			</div>
+
+			<div class="action-group">
+				<h3>Отправка тригера Heartbit</h3>
+				<button id="send-heartbit-btn">SendTriggerHeartbit</button>
+			</div>
+		</div>
+
+		<div class="log-container">
+			<div class="log-header">
+				<h2>Лог системы</h2>
+				<button id="clear-log-btn">Очистить лог</button>
+			</div>
+			<div class="log-content" id="log-content">
+				<!-- Лог будет добавляться динамически -->
+			</div>
+		</div>
+	</div>
+
+	<script src="js/index.js"></script>
+	<script src="js/rpc-client.js"></script>
+
+</body>
+
+</html>
