@@ -11,6 +11,8 @@ class RPCClient {
 		this.maxReconnectAttempts = 5;
 		this.reconnectAttempts = 0;
 
+		this.url = 'ws://localhost:8080';
+
 		// Отладка
 		this.debug = true;
 	}
@@ -21,10 +23,14 @@ class RPCClient {
 		}
 	}
 
-	connect(url = 'ws://localhost:8080') {
+	setUrl(new_url) {
+		this.url = new_url;
+	}
+
+	connect() {
 		try {
-			this.log(`Connecting to ${url}...`);
-			this.ws = new WebSocket(url);
+			this.log(`Connecting to ${this.url}...`);
+			this.ws = new WebSocket(this.url, 'websocket');
 
 			this.ws.onopen = () => {
 				this.log('WebSocket connection established');
@@ -82,9 +88,53 @@ class RPCClient {
 			const requestJson = JSON.stringify(request);
 			this.log(`Sending RPC request: ${method}`, request);
 
-			this.ws.send(requestJson);
+			try {
+				this.ws.send(requestJson);
+			} catch (error) {
+				this.pendingRequests.delete(id);
+				reject(error);
+			}
 		});
 	}
+
+	// call(method, params = {}) {
+	// 	return new Promise((resolve, reject) => {
+	// 		if (!this.rpcEnabled) {
+	// 			const error = new Error('RPC is currently disabled');
+	// 			this.log('Call blocked - RPC disabled:', method);
+	// 			reject(error);
+	// 			return;
+	// 		}
+
+	// 		if (!this.connected) {
+	// 			const error = new Error('Not connected to server');
+	// 			this.log('Call failed - not connected:', method);
+	// 			reject(error);
+	// 			return;
+	// 		}
+
+	// 		const id = ++this.requestId;
+	// 		const request = {
+	// 			jsonrpc: '2.0',
+	// 			id: id,
+	// 			method: method,
+	// 			params: params
+	// 		};
+
+	// 		this.pendingRequests.set(id, { resolve, reject });
+
+	// 		const requestJson = JSON.stringify(request);
+	// 		this.log(`Sending RPC request: ${method}`, request);
+
+	// 		try {
+	// 			this.ws.send(requestJson);
+	// 		} catch (error) {
+	// 			this.pendingRequests.delete(id);
+	// 			reject(error);
+	// 		}
+	// 	});
+	// }
+
 
 	handleMessage(message) {
 		console.log('Raw message received:', message);
@@ -148,17 +198,17 @@ class RPCClient {
 	}
 
 	handleReconnect() {
-		if (this.reconnectAttempts < this.maxReconnectAttempts) {
-			this.reconnectAttempts++;
-			console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+		// if (this.reconnectAttempts < this.maxReconnectAttempts) {
+		// 	this.reconnectAttempts++;
+		// 	console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
-			setTimeout(() => {
-				this.connect();
-			}, this.reconnectInterval);
-		} else {
-			console.error('Max reconnection attempts reached');
-			this.emit('reconnect_failed');
-		}
+		// 	setTimeout(() => {
+		// 		this.connect();
+		// 	}, this.reconnectInterval);
+		// } else {
+		// 	console.error('Max reconnection attempts reached');
+		// 	this.emit('reconnect_failed');
+		// }
 	}
 
 	disconnect() {

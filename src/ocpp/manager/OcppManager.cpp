@@ -104,6 +104,17 @@ bool OcppManager::sendGetBaseReport(const std::string &id) {
 	return true;
 }
 
+bool OcppManager::getAllStationInfo(const std::string &id, StationInfo &info) {
+	auto charge_point = getChargePointById(id);
+
+	if (charge_point == nullptr) {
+
+		return false;
+	}
+
+	return true;
+}
+
 bool OcppManager::sendVariablesReq(const std::string &id, const std::string &component, const std::string &variable, const std::string &attribute) {
 	auto charge_point = getChargePointById(id);
 

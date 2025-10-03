@@ -611,6 +611,10 @@ section {
 	width: 120px;
 }
 
+.wide-input-field {
+	width: 170px;
+}
+
 .input-field:focus {
 	outline: none;
 	border-color: #007bff;

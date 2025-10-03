@@ -5,6 +5,7 @@ class CentralSystem {
 		this.current_connector = null;
 		this.stations = new Map();
 		this.is_initialized = false;
+		this.scan_rate = 1000 // частота опроса в миллисекундах ms
 
 		this.init();
 	}
@@ -35,6 +36,9 @@ class CentralSystem {
 
 		// Trigger кнопки
 		this.bindTriggerControls();
+
+		// Управление вебсокетом
+		this.bindWebsocketControls();
 	}
 
 	/** Настройка обработчиков RPC событий */
@@ -63,15 +67,15 @@ class CentralSystem {
 
 	/** Загрузка начальных данных */
 	async loadInitialData() {
-		try {
-			// Загрузка списка станций при старте
-			if (this.rpc_client.connected) {
+		// Загрузка списка станций при старте
+		if (this.rpc_client.connected) {
+			try {
 				await this.loadStationsList();
 			}
-		} 
-		catch (error) {
-			console.error('Error loading initial data:', error);
-			this.logError('Ошибка загрузки начальных данных');
+			catch (error) {
+				console.error('Error loading initial data:', error);
+				this.logError('Ошибка загрузки начальных данных');
+			}
 		}
 	}
 
@@ -81,8 +85,9 @@ class CentralSystem {
 			this.log('Загрузка списка станций...');
 
 			const response = await this.rpc_client.call('GetStations');
-			const stations = this.parseResponse(response);
-
+			const result = this.parseResponse(response);
+			const stations = result['stations'];
+			
 			this.updateStationsDropdown(stations);
 			this.cacheStationsData(stations);
 
@@ -106,6 +111,8 @@ class CentralSystem {
 			const station_data = this.parseResponse(response);
 
 			this.current_station = station_id;
+
+			console.log("Current station", this.current_station);
 			this.updateStationInfo(station_data);
 			this.updateConnectorsDropdown(station_data.connectors);
 
@@ -126,7 +133,7 @@ class CentralSystem {
 			this.log(`Выбор коннектора: ${connector_id}`);
 
 			const response = await this.rpc_client.call('GetConnectorStatus', {
-				stationId: this.current_station,
+				station_id: this.current_station,
 				connector_id
 			});
 			
@@ -147,7 +154,15 @@ class CentralSystem {
 			this.disconnectStation();
 		});
 
-		// Получить конфигурацию
+		// Установить доступность станции
+		document.querySelector('#station_control__change_availability').addEventListener('click', () => {
+			this.changeAvailability();
+		});
+
+		// Бинд радиокнопок для изменения доступности
+		this.bindChangeAvailabilityRadioButtons();
+
+		// Получить уведомление от станции
 		document.querySelector('#station_control__boot_notification').addEventListener('click', () => {
 			this.getStationInfo();
 		});
@@ -208,6 +223,35 @@ class CentralSystem {
 		});
 	}
 
+	/** Привязка обработчиков кнопок для управления вебсокетом */
+	bindWebsocketControls() {
+		document.querySelector('#websocket-connect').addEventListener('click', () => {
+			this.connectWebsocket();
+		});
+
+		document.querySelector('#websocket-disconnect').addEventListener('click', () => {
+			this.disconnectWebsocket();
+		});
+
+		document.querySelector('#apply-websocket-settings').addEventListener('click', () => {
+			this.applyWebsocketSettings();
+		});
+	}
+
+	bindChangeAvailabilityRadioButtons() {
+		// Бинд радиокнопок для выставления доступности
+		const change_availability_on = document.querySelector('#station_control__change_availability_on');
+		const change_availability_off = document.querySelector('#station_control__change_availability_off');
+		change_availability_on.addEventListener('click', () => {
+			change_availability_on.checked = true;
+			change_availability_off.checked = false;
+		});
+		change_availability_off.addEventListener('click', () => {
+			change_availability_off.checked = true;
+			change_availability_on.checked = false;
+		});
+	}
+
 	// === RPC МЕТОДЫ ДЛЯ СТАНЦИИ === 
 
 	async disconnectStation() {
@@ -216,7 +260,7 @@ class CentralSystem {
 		try {
 			this.log(`Отключение станции ${this.current_station}`);
 			await this.rpc_client.call('DisconnectStation', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Станция успешно отключена');
 		}
@@ -225,13 +269,37 @@ class CentralSystem {
 		}
 	}
 
+	async changeAvailability() {
+		if (!this.validateCurrentStation()) return;
+
+		const change_availability_on = document.querySelector('#station_control__change_availability_on');
+
+		let cmd = 'Unavailable';
+		if (change_availability_on.checked) {
+			cmd = 'Available';
+		}
+
+		try {
+			await this.rpc_client.call('ChangeAvailability', {
+				station_id: this.current_station,
+				command: cmd
+			});
+			this.log('Доступность станции изменена');
+		}
+		catch (error) {
+			this.handleRpcError('Ошибка изменения доступности станции', error);
+		}
+
+	}
+	
 	async getStationInfo() {
 		if (!this.validateCurrentStation()) return;
 
 		try {
 			const response = await this.rpc_client.call('GetStationInfo', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
+			this.log(`Информация о станции: ${JSON.stringify(this.parseResponse(response))}`);
 		}
 		catch (error) {
 			this.handleRpcError('Ошибка получения информации о станции', error);
@@ -243,7 +311,7 @@ class CentralSystem {
 
 		try {
 			const response = await this.rpc_client.call('GetConfiguration', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Конфигурация получена');
 			this.log(`Конфигурация: ${JSON.stringify(this.parseResponse(response))}`);
@@ -258,7 +326,7 @@ class CentralSystem {
 
 		try {
 			const response = await this.rpc_client.call('GetVariable', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Переменные получены');
 			this.log(`Переменные: ${JSON.stringify(this.parseResponse(response))}`);
@@ -282,7 +350,7 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('SetVariable', {
-				stationId: this.current_station,
+				station_id: this.current_station,
 				component,
 				variable,
 				attribute: attribute || undefined
@@ -299,7 +367,7 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('RebootStation', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Команда перезагрузки отправлена');
 		}
@@ -313,7 +381,7 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('ClearCache',  {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Кэш успешно очищен');
 		}
@@ -329,8 +397,8 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('RequestStartTransaction', {
-				stationId: this.current_station,
-				connectorId: this.current_connector
+				station_id: this.current_station,
+				connector_id: this.current_connector
 			});
 			this.logSuccess('Запрос на начало транзакции отправлен');
 		}
@@ -344,8 +412,8 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('RequestStopTransaction', {
-				stationId: this.current_station,
-				connectorId: this.current_connector
+				station_id: this.current_station,
+				connector_id: this.current_connector
 			});
 			this.logSuccess('Запрос на остановку транзакции отправлен');
 		}
@@ -359,8 +427,8 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('UnlockConnector', {
-				stationId: this.current_station,
-				connectorId: this.current_connector
+				station_id: this.current_station,
+				connector_id: this.current_connector
 			});
 			this.logSuccess('Команда разблокировки коннектора отправлена');
 		}
@@ -394,7 +462,7 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('TriggerStatusNotification', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Status notification triggered');
 		}
@@ -408,7 +476,7 @@ class CentralSystem {
 
 		try {
 			await this.rpc_client.call('TriggerHeartbeat', {
-				stationId: this.current_station
+				station_id: this.current_station
 			});
 			this.logSuccess('Heartbeat triggered');
 		}
@@ -417,12 +485,37 @@ class CentralSystem {
 		}
 	}
 
+	// === МЕТОДЫ ОПРОСОВ ===
+	scanAllStation() {
+		
+	}
+
+	// === ОБРАБОТЧИКИ WEBSOCKET УПРАВЛЕНИЯ ===
+
+	applyWebsocketSettings() {
+		const websocket_address = document.querySelector('#websocket-address');
+		this.rpc_client.setUrl(websocket_address.value);
+		this.log(`Установлен новый ws адрес ${websocket_address.value}`);
+
+		const polling_frequency = document.querySelector('#polling-frequency');
+		this.scan_rate = polling_frequency.value;
+		this.log(`Установлена частота опроса ${this.scan_rate} мс`);
+	}
+
+	connectWebsocket() {
+		this.rpc_client.connect()
+	}
+
+	disconnectWebsocket() {
+		this.rpc_client.disconnect();
+	}
+
 	// === ОБРАБОТЧИКИ RPC УВЕДОМЛЕНИЙ ===
 
 	handleStatusNotification(data) {
 		this.log(`StatusNotification: ${JSON.stringify(data)}`);
 
-		if (data.stationId === this.current_station) {
+		if (data.station_id === this.current_station) {
 			this.updateStationStatus(data.status);
 
 			if (data.connector_id === this.connector_id) {
@@ -434,16 +527,36 @@ class CentralSystem {
 	handleMeterValues(data) {
 		this.log(`MeterValues: ${JSON.stringify(data)}`);
 
-		if (data.stationId === this.current_station && data.connectorId == this.current_connector) {
+		if (data.station_id === this.current_station && data.connector_id == this.current_connector) {
 			this.updateMeterValues(data.values);
 		}
 	}
 
 	handleHeartbeat(data) {
-		this.log(`Heartbeat received from station: ${data.stationId}`);
+		this.log(`Heartbeat received from station: ${data.station_id}`);
 	}
 
 	// === ОБНОВЛЕНИЕ UI ===
+
+	updateConnectionStatus(flag) {
+		const websocket_status = document.querySelector('#websocket-status-led');
+		const websocket_status_text = document.querySelector('#websocket-status-text');
+		const websocket_connect_btn = document.querySelector('#websocket-connect');
+		const websocket_disconnect_btn = document.querySelector('#websocket-disconnect')
+
+		if (flag) { 
+			websocket_status.className = 'status-indicator__led status-indicator__led--connected';
+			websocket_status_text.textContent = 'Соединение установлено';
+			websocket_connect_btn.disabled = true;
+			websocket_disconnect_btn.disabled = false;
+		}
+		else {
+			websocket_status.className = 'status-indicator__led status-indicator__led--disconnected';
+			websocket_status_text.textContent = 'Соединение отсутствует';
+			websocket_connect_btn.disabled = false;
+			websocket_disconnect_btn.disabled = true;
+		}
+	}
 
 	updateStationDropdown(stations) {
 		const select = document.getElementById('station-select');
@@ -574,6 +687,18 @@ class CentralSystem {
 			return response.result;
 		}
 		return response;
+	}
+
+	updateStationsDropdown(stations) {
+		const station_select = document.querySelector('#station-select');
+		station_select.innerHTML = '';
+
+		for (let i = 0; i < stations.length; i++) {
+			const option_element = document.createElement('option');
+			option_element.value = stations[i];
+			option_element.text = stations[i];
+			station_select.appendChild(option_element);	
+		}
 	}
 
 	cacheStationsData(stations) {

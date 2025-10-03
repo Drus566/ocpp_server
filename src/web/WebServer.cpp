@@ -922,6 +922,18 @@ void WebServer::handleRpcMessage(int connection_id, const std::string& message) 
             std::cout << "Handling getValue command" << std::endl;
             result = handleGetValue(request.params);
         }
+
+
+        else if (request.method == "GetStations") {
+            std::cout << "Handling GetStations command" << std::endl;
+            result = handleGetStations();
+        }
+        // else if (request.method == "GetStationStatus") {
+        //     std::cout << "Handling GetStationStatus command" << std::endl;
+        //     result = handleGetStationStatus(request.params);
+        // }
+
+
         else if (request.method == "setValue") {
             std::cout << "Handling setValue command" << std::endl;
             result = handleSetValue(request.params);
@@ -976,6 +988,55 @@ void WebServer::handleRpcMessage(int connection_id, const std::string& message) 
     }
     
     std::cout << "=== RPC Processing Complete ===" << std::endl;
+}
+
+// Реализация RPC команд с RapidJSON
+std::string WebServer::handleGetStations() {    
+    std::vector<std::string> charge_points = m_ocpp_manager.getChargePointIds();
+
+    if (charge_points.size() == 0) {
+        for (int i = 0; i < 3; i++) {
+            charge_points.push_back("ST000" + std::to_string(i));
+        }
+    }
+
+    rapidjson::Document doc = createJsonDocument();
+    auto &allocator = doc.GetAllocator();
+    rapidjson::Value arr(rapidjson::kArrayType);
+
+    for (const auto &s : charge_points) {
+        rapidjson::Value str_val;
+        str_val.SetString(s.c_str(), static_cast<rapidjson::SizeType>(s.length()), allocator);
+        arr.PushBack(str_val, allocator);
+    }
+
+    doc.AddMember("stations", arr, allocator);
+    return jsonToString(doc);
+}
+
+// Реализация RPC команд с RapidJSON
+std::string WebServer::handleGetStationStatus(const rapidjson::Value& params) {    
+    
+
+    // if (charge_points.size() == 0) {
+    //     for (int i = 0; i < 3; i++) {
+    //         charge_points.push_back("ST000" + std::to_string(i));
+    //     }
+    // }
+
+    // rapidjson::Document doc = createJsonDocument();
+    // auto &allocator = doc.GetAllocator();
+    // rapidjson::Value arr(rapidjson::kArrayType);
+
+    // for (const auto &s : charge_points) {
+    //     rapidjson::Value str_val;
+    //     str_val.SetString(s.c_str(), static_cast<rapidjson::SizeType>(s.length()), allocator);
+    //     arr.PushBack(str_val, allocator);
+    // }
+
+    // doc.AddMember("stations", arr, allocator);
+    // return jsonToString(doc);
+    
 }
 
 // Реализация RPC команд с RapidJSON

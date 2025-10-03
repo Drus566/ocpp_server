@@ -17,6 +17,21 @@
 namespace os {
 namespace ocpp {
 
+
+struct ConnectorInfo {
+	std::string type;
+	std::string status;
+	float meter;
+	float power;
+};
+
+struct StationInfo {
+	std::string status;
+	int connector_count;
+	int max_power;
+	std::vector<ConnectorInfo> connectors;
+};
+
 class OcppManager {
 public:	
 	OcppManager();
@@ -37,6 +52,8 @@ public:
 	bool sendTriggerStatusNotification(const std::string& id);
 	bool sendTriggerMeterValues(const std::string& id, const int evse_id);
 	bool sendTriggerHeartbit(const std::string &id);
+
+	bool getAllStationInfo(const std::string &id, StationInfo &info);
 
 	// bool reconnect();
 	// bool isInit();
