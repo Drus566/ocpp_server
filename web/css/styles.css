@@ -467,3 +467,152 @@ section {
 		font-size: 0.9rem;
 	}
 }
+
+.connection-status {
+	top: 20px;
+	right: 20px;
+	padding: 5px 10px;
+	border-radius: 15px;
+	font-size: 0.8rem;
+	font-weight: 500;
+}
+
+.connection-status.connected {
+	background-color: #2ecc71;
+	color: white;
+}
+
+.connection-status.disconnected {
+	background-color: #e74c3c;
+	color: white;
+}
+
+.log-entry--success .log-entry__message {
+	color: #2ecc71;
+}
+
+.log-entry--error .log-entry__message {
+	color: #e74c3c;
+}
+
+.log-entry--info .log-entry__message {
+	color: #3498db;
+}
+
+/* Добавьте эти стили в css/styles.css */
+
+/* WebSocket секция */
+.websocket-section {
+	margin-bottom: 2rem;
+	padding: 1.5rem;
+	background: #f8f9fa;
+	border-radius: 8px;
+	border: 1px solid #dee2e6;
+}
+
+.websocket-section__title {
+	margin-bottom: 1rem;
+	color: #2c3e50;
+	font-size: 1.5rem;
+}
+
+.websocket-connection,
+.websocket-settings {
+	margin-bottom: 1.5rem;
+}
+
+.websocket-connection__title,
+.websocket-settings__title {
+	margin-bottom: 0.75rem;
+	color: #495057;
+	font-size: 1.1rem;
+}
+
+/* Статус соединения */
+.connection-status {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.status-indicator {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.status-indicator__led {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	transition: background-color 0.3s ease;
+}
+
+.status-indicator__led--connected {
+	background-color: #28a745;
+	box-shadow: 0 0 8px #28a745;
+}
+
+.status-indicator__led--disconnected {
+	background-color: #6c757d;
+	box-shadow: 0 0 8px #6c757d;
+}
+
+.status-indicator__text {
+	font-size: 1rem;
+	color: rgb(34, 34, 34);
+}
+
+.connection-controls {
+	display: flex;
+	gap: 0.5rem;
+}
+
+/* Настройки */
+.settings-controls {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.setting-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.setting-item__label {
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+/* Кнопки */
+.btn--success {
+	background-color: #28a745;
+	color: white;
+}
+
+.btn--success:hover:not(:disabled) {
+	background-color: #218838;
+}
+
+.btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Поля ввода */
+.input-field {
+	padding: 0.5rem;
+	border: 1px solid #ced4da;
+	border-radius: 4px;
+	font-size: 0.9rem;
+	width: 120px;
+}
+
+.input-field:focus {
+	outline: none;
+	border-color: #007bff;
+	box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}

@@ -171,4 +171,4 @@ class RPCClient {
 }
 
 // Глобальный экземпляр RPC клиента
-window.rpcClient = new RPCClient();
+window.rpc_client = new RPCClient();
