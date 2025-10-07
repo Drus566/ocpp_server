@@ -137,7 +137,7 @@ section {
 }
 
 /* Статусы */
-.status--working {
+.status--ok {
 	color: var(--secondary-color);
 	font-weight: 500;
 }
@@ -147,7 +147,7 @@ section {
 	font-weight: 500;
 }
 
-.status--disabled {
+.status--off {
 	color: var(--text-light);
 	font-weight: 500;
 }

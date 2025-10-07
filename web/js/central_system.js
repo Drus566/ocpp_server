@@ -25,7 +25,9 @@ class CentralSystem {
 	bindEvents() {
 		// Выбор станции
 		document.getElementById('station-select').addEventListener('change', (e) => { 
-			this.handleStationChange(e.target.value); 
+			if (e.target.value !== '') {
+				this.handleStationChange(e.target.value); 
+			}
 		});
 
 		// Кнопки управления станцией
@@ -88,7 +90,7 @@ class CentralSystem {
 			const result = this.parseResponse(response);
 			const stations = result['stations'];
 			
-			this.updateStationsDropdown(stations);
+			this.updateStationDropdown(stations);
 			this.cacheStationsData(stations);
 
 			// Автоматически выбирам первую станцию
@@ -115,10 +117,11 @@ class CentralSystem {
 			console.log("Current station", this.current_station);
 			this.updateStationInfo(station_data);
 			this.updateConnectorsDropdown(station_data.connectors);
-
+			
 			// Выбираем первый коннектор по умолчанию
 			if (station_data.connectors && station_data.connectors.length > 0) {
-				this.handleConnectorChange(station_data.connectors[0].id);
+				this.setFirstConnectorInDropdown();
+				this.updateConnectorInfo(station_data.connectors[0]);
 			}
 		}
 		catch (error) {
@@ -559,28 +562,46 @@ class CentralSystem {
 	}
 
 	updateStationDropdown(stations) {
-		const select = document.getElementById('station-select');
-		select.innerHTML = '';
+		const station_select = document.getElementById('station-select');
+		station_select.innerHTML = '';
+
+		const option_element = document.createElement('option');
+		option_element.value = '';
+		option_element.text = '';
+		station_select.appendChild(option_element);
 
 		stations.forEach(station => {
 			const option = document.createElement('option');
-			option.value = station.id;
-			option.textContent = station.name || `Станция ${station.id}`;
-			select.appendChild(option);
+			option.value = station;
+			option.textContent = station || `Станция #${station}`;
+			station_select.appendChild(option);
 		});
 	}
 
 	updateConnectorsDropdown(connectors) {
-		const select = document.getElementById('connector-select');
-		select.innerHTML = '';
+		const connector_select = document.getElementById('connector-select');
+		connector_select.innerHTML = '';
 
 		if (connectors && connectors.length > 0) {
+
+			const option_element = document.createElement('option');
+			option_element.value = '';
+			option_element.text = '';
+			connector_select.appendChild(option_element);
+
 			connectors.forEach(connector => {
 				const option = document.createElement('option');
 				option.value = connector.id;
 				option.textContent = `Коннектор ${connector.id}`;
-				select.appendChild(option);
+				connector_select.appendChild(option);
 			});
+		}
+	}
+
+	setFirstConnectorInDropdown() {
+		const connector_select = document.getElementById('connector-select');
+		if (connector_select.options.length > 0) {
+			connector_select.selectedIndex = 1;
 		}
 	}
 
@@ -601,8 +622,8 @@ class CentralSystem {
 
 		// Обновление максимальное мощности
 		const power_element = document.querySelector('#station__max_power');
-		if (power_element && station_data.maxPower) {
-			power_element.textContent = `${station_data.maxPower} кВт`;
+		if (power_element && station_data.max_power) {
+			power_element.textContent = `${station_data.max_power} кВт`;
 		}
 	}
 
@@ -619,14 +640,14 @@ class CentralSystem {
 
 		// Счетчик
 		if (connector_data.meter != undefined) {
-			updateMeterValues(connector_data.meter);
+			this.updateMeterValues(connector_data.meter);
 			// const connector_meter = document.querySelector('#connector__meter');
 			// connector_meter.textContent = `${connector_data.meter} кВт*ч`;
 		}
 
 		// Мощность
 		if (connector_data.power !== undefined) {
-			updatePower(connector_data.power());
+			this.updatePower(connector_data.power);
 			// const connector_power = document.querySelector('#connector__power');
 			// connector_power.textContent = `${connector_data.power} кВт`;
 		}
@@ -635,7 +656,22 @@ class CentralSystem {
 	updateStationStatus(status) {
 		const status_element = document.querySelector('#station__status');
 		if (status_element) {
-			status_element.textContent = this.getStatusText(status);
+			let status_str;
+			switch (status) {
+				case "ok":
+					status_str = "В работе"
+					break;
+				case "alarm":
+					status_str = "Авария";
+					break;
+				case "off":
+					status_str = "Не работает"
+					break;
+				default:
+					status_str = status.toUpperCase();
+					break;
+			}
+			status_element.textContent = this.getStatusText(status_str);
 			status_element.className = `info-item__value status--${status}`;
 		}
 	}
@@ -687,18 +723,6 @@ class CentralSystem {
 			return response.result;
 		}
 		return response;
-	}
-
-	updateStationsDropdown(stations) {
-		const station_select = document.querySelector('#station-select');
-		station_select.innerHTML = '';
-
-		for (let i = 0; i < stations.length; i++) {
-			const option_element = document.createElement('option');
-			option_element.value = stations[i];
-			option_element.text = stations[i];
-			station_select.appendChild(option_element);	
-		}
 	}
 
 	cacheStationsData(stations) {

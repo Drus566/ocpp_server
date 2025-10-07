@@ -17,19 +17,29 @@
 namespace os {
 namespace ocpp {
 
+/*
+Для пример в приложении V4D инфа
+Заряжено, кВт*ч (получено энергии)
+Сумма, р (сколько натикало бабок)
+Длительность зарядки, мин
+Мощность зарядки, кВт (текущая мощность зарядки)
+Тип коннектора (GBT/CCS/CHADEMO/TYPE2)
+Номер коннектора
+Номер сессии
+*/
 
 struct ConnectorInfo {
-	std::string type;
-	std::string status;
-	float meter;
-	float power;
+	std::string type;     						// Тип коннектора
+	std::string status;							// Статус коннектора
+	float meter;									// Счетчик коннектора 
+	float power;									// Мощность коннектора
 };
 
 struct StationInfo {
-	std::string status;
-	int connector_count;
-	int max_power;
-	std::vector<ConnectorInfo> connectors;
+	std::string status;							// Статус станции
+	int connector_count;							// Количество коннекторов
+	int max_power;									// Максимальная мощность
+	std::vector<ConnectorInfo> connectors; // Информация о коннекторах станции
 };
 
 class OcppManager {

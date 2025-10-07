@@ -108,7 +108,6 @@ bool OcppManager::getAllStationInfo(const std::string &id, StationInfo &info) {
 	auto charge_point = getChargePointById(id);
 
 	if (charge_point == nullptr) {
-
 		return false;
 	}
 

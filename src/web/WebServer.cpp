@@ -928,10 +928,10 @@ void WebServer::handleRpcMessage(int connection_id, const std::string& message) 
             std::cout << "Handling GetStations command" << std::endl;
             result = handleGetStations();
         }
-        // else if (request.method == "GetStationStatus") {
-        //     std::cout << "Handling GetStationStatus command" << std::endl;
-        //     result = handleGetStationStatus(request.params);
-        // }
+        else if (request.method == "GetStationStatus") {
+            std::cout << "Handling GetStationStatus command" << std::endl;
+            result = handleGetStationStatus(request.params);
+        }
 
 
         else if (request.method == "setValue") {
@@ -1015,28 +1015,73 @@ std::string WebServer::handleGetStations() {
 }
 
 // Реализация RPC команд с RapidJSON
-std::string WebServer::handleGetStationStatus(const rapidjson::Value& params) {    
-    
+std::string WebServer::handleGetStationStatus(const rapidjson::Value& params) {
+    if (!params.IsObject() || !params.HasMember("station_id") || !params["station_id"].IsString()) {
+        throw std::runtime_error("Invalid parameters: expected object with 'station_id' string");
+    }
 
-    // if (charge_points.size() == 0) {
-    //     for (int i = 0; i < 3; i++) {
-    //         charge_points.push_back("ST000" + std::to_string(i));
-    //     }
-    // }
+    std::string station_id = params["station_id"].GetString();
 
-    // rapidjson::Document doc = createJsonDocument();
-    // auto &allocator = doc.GetAllocator();
-    // rapidjson::Value arr(rapidjson::kArrayType);
+    // Данные
+    std::string station_status = "ok";
+    int connector_count = 2;
+    int max_power = 150;
 
-    // for (const auto &s : charge_points) {
-    //     rapidjson::Value str_val;
-    //     str_val.SetString(s.c_str(), static_cast<rapidjson::SizeType>(s.length()), allocator);
-    //     arr.PushBack(str_val, allocator);
-    // }
+    if(station_id == "ST0001") {
+        station_status = "alarm";
+        connector_count = 3;
+        max_power = 120;
+    }
+    else if(station_id == "ST0002") {
+        station_status = "off";
+        connector_count = 4;
+        max_power = 180;
+    }
 
-    // doc.AddMember("stations", arr, allocator);
-    // return jsonToString(doc);
-    
+    // JSON
+    rapidjson::Document doc = createJsonDocument();
+    auto &allocator = doc.GetAllocator();
+
+    doc.AddMember("status", rapidjson::Value(station_status.c_str(), static_cast<rapidjson::SizeType>(station_status.length()), allocator).Move(), allocator);
+    doc.AddMember("connector_count", connector_count, allocator);
+    doc.AddMember("max_power", max_power, allocator);
+
+    rapidjson::Value connectors(rapidjson::kArrayType);
+
+    for (int i = 0; i < connector_count; i++) {
+        std::string type = "CHADEMO";
+        std::string status = "charge";
+        float meter = 33.1;
+        float power = 22.1;
+        if (i == 1) {
+            type = "CCS2";
+            status = "alarm";
+            meter = 0;
+            power = 0;
+        }
+        else if (i == 2) {
+            type = "GBT";
+            status = "ok";
+            meter = 0;
+            power = 0;
+        }
+        else if (i == 3) {
+            type = "TYPE2";
+            status = "off";
+            meter = 0;
+            power = 0;
+        }
+        rapidjson::Value connector(rapidjson::kObjectType);
+        connector.AddMember("id", i + 1, allocator);
+        connector.AddMember("type", rapidjson::Value(type.c_str(), static_cast<rapidjson::SizeType>(type.length()), allocator).Move(), allocator);
+        connector.AddMember("status", rapidjson::Value(status.c_str(), static_cast<rapidjson::SizeType>(status.length()), allocator).Move(), allocator);
+        connector.AddMember("meter", meter, allocator);
+        connector.AddMember("power", power, allocator);
+        connectors.PushBack(connector, allocator);
+    }
+
+    doc.AddMember("connectors", connectors, allocator);
+    return jsonToString(doc);
 }
 
 // Реализация RPC команд с RapidJSON
