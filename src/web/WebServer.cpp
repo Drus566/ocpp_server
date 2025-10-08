@@ -764,7 +764,6 @@ std::string WebServer::jsonValueToString(const rapidjson::Value& value) {
     }
 }
 
-
 // Парсинг JSON RPC запроса с использованием RapidJSON
 RpcRequest WebServer::parseRpcRequest(const std::string& json) {
     RpcRequest request;
@@ -932,7 +931,11 @@ void WebServer::handleRpcMessage(int connection_id, const std::string& message) 
             std::cout << "Handling GetStationStatus command" << std::endl;
             result = handleGetStationStatus(request.params);
         }
-
+        else if (request.method == "GetConnectorStatus")
+        {
+            std::cout << "Handling GetConnectorStatus command" << std::endl;
+            result = handleGetConnectorStatus(request.params);
+        }
 
         else if (request.method == "setValue") {
             std::cout << "Handling setValue command" << std::endl;
@@ -1083,6 +1086,55 @@ std::string WebServer::handleGetStationStatus(const rapidjson::Value& params) {
     doc.AddMember("connectors", connectors, allocator);
     return jsonToString(doc);
 }
+
+std::string WebServer::handleGetConnectorStatus(const rapidjson::Value& params) {
+    if (!params.IsObject() || !params.HasMember("station_id") || !params["station_id"].IsString()) {
+        throw std::runtime_error("Invalid parameters: expected object with 'station_id' string");
+    }
+
+    if (!params.IsObject() || !params.HasMember("connector_id") || !params["connector_id"].IsInt()) {
+        throw std::runtime_error("Invalid parameters: expected object with 'connector_id' int");
+    }
+
+    std::string station_id = params["station_id"].GetString();
+    int connector_id = params["connector_id"].GetInt();
+
+    // Данные
+    std::string type = "CHADEMO";
+    std::string status = "charge";
+    float meter = 33.1;
+    float power = 22.1;
+    if (connector_id == 2) {
+        type = "CCS2";
+        status = "alarm";
+        meter = 0;
+        power = 0;
+    }
+    else if (connector_id == 3) {
+        type = "GBT";
+        status = "ok";
+        meter = 0;
+        power = 0;
+    }
+    else if (connector_id == 4) {
+        type = "TYPE2";
+        status = "off";
+        meter = 0;
+        power = 0;
+    }
+
+    // JSON
+    rapidjson::Document doc = createJsonDocument();
+    auto &allocator = doc.GetAllocator();
+
+    doc.AddMember("status", rapidjson::Value(status.c_str(), static_cast<rapidjson::SizeType>(status.length()), allocator).Move(), allocator);
+    doc.AddMember("type", rapidjson::Value(type.c_str(), static_cast<rapidjson::SizeType>(type.length()), allocator).Move(), allocator);
+    doc.AddMember("meter", meter, allocator);
+    doc.AddMember("power", power, allocator);
+
+    return jsonToString(doc);
+}
+
 
 // Реализация RPC команд с RapidJSON
 std::string WebServer::handleGetValue(const rapidjson::Value& params) {

@@ -97,45 +97,6 @@ class RPCClient {
 		});
 	}
 
-	// call(method, params = {}) {
-	// 	return new Promise((resolve, reject) => {
-	// 		if (!this.rpcEnabled) {
-	// 			const error = new Error('RPC is currently disabled');
-	// 			this.log('Call blocked - RPC disabled:', method);
-	// 			reject(error);
-	// 			return;
-	// 		}
-
-	// 		if (!this.connected) {
-	// 			const error = new Error('Not connected to server');
-	// 			this.log('Call failed - not connected:', method);
-	// 			reject(error);
-	// 			return;
-	// 		}
-
-	// 		const id = ++this.requestId;
-	// 		const request = {
-	// 			jsonrpc: '2.0',
-	// 			id: id,
-	// 			method: method,
-	// 			params: params
-	// 		};
-
-	// 		this.pendingRequests.set(id, { resolve, reject });
-
-	// 		const requestJson = JSON.stringify(request);
-	// 		this.log(`Sending RPC request: ${method}`, request);
-
-	// 		try {
-	// 			this.ws.send(requestJson);
-	// 		} catch (error) {
-	// 			this.pendingRequests.delete(id);
-	// 			reject(error);
-	// 		}
-	// 	});
-	// }
-
-
 	handleMessage(message) {
 		console.log('Raw message received:', message);
 

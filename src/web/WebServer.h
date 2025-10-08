@@ -147,6 +147,7 @@ private:
     std::string handleGetValue(const rapidjson::Value &params);
     std::string handleGetStations();
     std::string handleGetStationStatus(const rapidjson::Value &params);
+    std::string handleGetConnectorStatus(const rapidjson::Value &params);
     std::string handleSetValue(const rapidjson::Value &params);
     std::string handleGetValues(const rapidjson::Value &params);
     std::string handleGetMetrics(const rapidjson::Value &params);

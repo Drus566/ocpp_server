@@ -161,8 +161,9 @@ section {
 	color: white;
 }
 
-.status-indicator--alarm-ev,
-.status-indicator--alarm-cp {
+.status-indicator--alarm_ev,
+.status-indicator--alarm_cp,
+.status-indicator--alarm {
 	background-color: var(--danger-color);
 }
 
@@ -172,9 +173,10 @@ section {
 }
 
 .status-indicator--charge {
-	background-color: var(--primary-color);
+	background-color: rgb(63, 63, 255);
 }
 
+.status-indicator--off,
 .status-indicator--unavailable {
 	background-color: var(--text-light);
 }

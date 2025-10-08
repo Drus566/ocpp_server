@@ -30,6 +30,14 @@ class CentralSystem {
 			}
 		});
 
+		// Выбор коннектора
+		document.getElementById('connector-select').addEventListener('change', (e) => {
+			if (e.target.value !== '') {
+				let id = parseInt(e.target.value);
+				this.handleConnectorChange(id);
+			}
+		});
+
 		// Кнопки управления станцией
 		this.bindStationControls();
 
@@ -137,7 +145,7 @@ class CentralSystem {
 
 			const response = await this.rpc_client.call('GetConnectorStatus', {
 				station_id: this.current_station,
-				connector_id
+				connector_id: connector_id
 			});
 			
 			const connector_data = this.parseResponse(response);
@@ -684,12 +692,12 @@ class CentralSystem {
 
 	updateMeterValues(meter) {
 		const connector_meter = document.querySelector('#connector__meter');
-		connector_meter.textContent = `${meter} кВт*ч`;
+		connector_meter.textContent = `${meter.toFixed(2)} кВт*ч`;
 	}
 
 	updatePower(power) {
 		const connector_power = document.querySelector('#connector__power');
-		connector_power.textContent = `${power} кВт`;
+		connector_power.textContent = `${power.toFixed(2)} кВт`;
 	}
 
 	// === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
